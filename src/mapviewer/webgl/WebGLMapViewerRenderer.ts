@@ -156,7 +156,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     fxaaEnabled: boolean = false;
 
     loadObjs: boolean = true;
-    loadNpcs: boolean = true;
+    loadNpcs: boolean = false;
 
     // State
     lastClientTick: number = 0;

@@ -225,14 +225,6 @@ export const MapViewerControls = memo(
 
         useControls(
             {
-                Links: folder(
-                    {
-                        GitHub: button(() => {
-                            window.open("https://github.com/dennisdev/rs-map-viewer", "_blank");
-                        }),
-                    },
-                    { collapsed: true },
-                ),
                 Camera: folder(
                     {
                         Projection: {

@@ -27,12 +27,13 @@ import { ObjSpawn } from "./data/obj/ObjSpawn";
 import { RenderDataWorkerPool } from "./worker/RenderDataWorkerPool";
 
 const DEFAULT_RENDER_DISTANCE = isWallpaperEngine ? 512 : 128;
+const DEFAULT_ORTHO_ZOOM = 45;
 
 const CACHED_MAP_IMAGE_PREFIX = "/map-images/";
 
 export class MapViewer {
     inputManager: InputManager = new InputManager();
-    camera: Camera = new Camera(3242, -26, 3202, -245, 1862);
+    camera: Camera;
 
     pathfinder: Pathfinder = new Pathfinder();
 
@@ -99,6 +100,8 @@ export class MapViewer {
         cache: LoadedCache,
     ) {
         this.renderer = createRenderer(rendererType, this);
+        this.camera = this.createCamera();
+        this.initializeBattlemapCreatorSettings();
         this.initCache(cache);
     }
 
@@ -206,6 +209,17 @@ export class MapViewer {
         this.renderer.initCache();
 
         this.updateSearchParams();
+    }
+
+    createCamera(): Camera {
+        const camera = new Camera(3242, -26, 3202, -512, 0);
+        camera.setProjectionType(ProjectionType.ORTHO);
+        camera.orthoZoom = DEFAULT_ORTHO_ZOOM;
+        return camera;
+    }
+
+    initializeBattlemapCreatorSettings(): void {
+        this.tooltips = false;
     }
 
     setRenderer(renderer: MapViewerRenderer): void {

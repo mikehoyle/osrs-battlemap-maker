@@ -58,7 +58,8 @@ export class Camera {
         Camera.deltaTemp[1] = deltaY;
         Camera.deltaTemp[2] = deltaZ;
 
-        if (rotatePitch) {
+        // Removing ability to update pitch/yaw at the source for now
+        /*if (rotatePitch) {
             vec3.rotateX(
                 Camera.deltaTemp,
                 Camera.deltaTemp,
@@ -71,17 +72,18 @@ export class Camera {
             Camera.deltaTemp,
             Camera.moveCameraRotOrigin,
             (this.yaw - 1024) * RS_TO_RADIANS,
-        );
+        );*/
 
         vec3.add(this.pos, this.pos, Camera.deltaTemp);
         this.updated = true;
         this.updatedPosition = true;
     }
 
+    // Removing ability to update pitch/yaw at the source for now
     updatePitch(pitch: number, deltaPitch: number): void {
-        const maxPitch = this.projectionType === ProjectionType.PERSPECTIVE ? 512 : 0;
+        /*const maxPitch = this.projectionType === ProjectionType.PERSPECTIVE ? 512 : 0;
         this.pitch = clamp(pitch + deltaPitch, -512, maxPitch);
-        this.updated = true;
+        this.updated = true;*/
     }
 
     getYaw(): number {
@@ -93,8 +95,9 @@ export class Camera {
         this.updated = true;
     }
 
+    // Removing ability to update pitch/yaw at the source for now
     updateYaw(yaw: number, deltaYaw: number): void {
-        this.setYaw(yaw + deltaYaw);
+        /*this.setYaw(yaw + deltaYaw);*/
     }
 
     update(width: number, height: number) {
