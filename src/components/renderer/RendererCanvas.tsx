@@ -14,6 +14,7 @@ export function RendererCanvas({ renderer }: RendererCanvasProps): JSX.Element {
             return;
         }
         divRef.current.appendChild(renderer.canvas);
+        divRef.current.appendChild(renderer.overlayCanvas);
 
         renderer.init().then(() => {
             renderer.start();
@@ -22,8 +23,9 @@ export function RendererCanvas({ renderer }: RendererCanvasProps): JSX.Element {
         return () => {
             renderer.stop();
             divRef.current?.removeChild(renderer.canvas);
+            divRef.current?.removeChild(renderer.overlayCanvas);
         };
     }, [renderer]);
 
-    return <div ref={divRef} style={{ width: "100%", height: "100%" }} tabIndex={0} />;
+    return <div ref={divRef} style={{ zIndex: "0", width: "100%", height: "100%" }} tabIndex={0} />;
 }

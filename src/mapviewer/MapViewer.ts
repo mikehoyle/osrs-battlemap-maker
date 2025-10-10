@@ -27,7 +27,7 @@ import { ObjSpawn } from "./data/obj/ObjSpawn";
 import { RenderDataWorkerPool } from "./worker/RenderDataWorkerPool";
 
 const DEFAULT_RENDER_DISTANCE = isWallpaperEngine ? 512 : 128;
-const DEFAULT_ORTHO_ZOOM = 45;
+const DEFAULT_ORTHO_ZOOM = 70;
 
 const CACHED_MAP_IMAGE_PREFIX = "/map-images/";
 
@@ -268,6 +268,7 @@ export class MapViewer {
         this.menuOpenedFrame = 0;
     };
 
+    // TODO: remove
     onExamine = (entry: OsrsMenuEntry) => {
         let lookupType: string | undefined;
         switch (entry.targetType) {

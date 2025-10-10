@@ -17,6 +17,8 @@ function resizeCanvas(canvas: HTMLCanvasElement) {
 
 export abstract class Renderer {
     canvas: HTMLCanvasElement;
+    overlayCanvas: HTMLCanvasElement;
+
     animationId: number | undefined;
     running: boolean = false;
 
@@ -25,15 +27,23 @@ export abstract class Renderer {
     stats: RenderStats = new RenderStats();
 
     constructor() {
-        this.canvas = document.createElement("canvas");
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.tabIndex = 0;
+        this.canvas = this.createCanvas("canvas");
+        this.overlayCanvas = this.createCanvas("overlayCanvas");
+        this.overlayCanvas.style.pointerEvents = "none";
     }
 
     abstract init(): Promise<void>;
 
     abstract cleanUp(): void;
+
+    private createCanvas(name: string): HTMLCanvasElement {
+        const canvas = document.createElement("canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.tabIndex = 0;
+        canvas.style.position = "absolute";
+        return canvas;
+    }
 
     start() {
         this.running = true;
@@ -53,7 +63,7 @@ export abstract class Renderer {
 
     frameCallback = (time: DOMHighResTimeStamp) => {
         try {
-            const resized = resizeCanvas(this.canvas);
+            const resized = resizeCanvas(this.canvas) && resizeCanvas(this.overlayCanvas);
             if (resized) {
                 this.onResize(this.canvas.width, this.canvas.height);
             }

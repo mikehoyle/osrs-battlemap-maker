@@ -1,5 +1,6 @@
 import { Schema } from "leva/dist/declarations/src/types";
 
+import { GridRenderer2D, GridSettings } from "../components/renderer/GridRenderer2D";
 import { Renderer } from "../components/renderer/Renderer";
 import { SceneBuilder } from "../rs/scene/SceneBuilder";
 import { clamp } from "../util/MathUtil";
@@ -12,9 +13,11 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
     abstract type: MapViewerRendererType;
 
     mapManager: MapManager<T>;
+    gridRenderer: GridRenderer2D;
 
     constructor(public mapViewer: MapViewer) {
         super();
+        this.gridRenderer = new GridRenderer2D(mapViewer.camera);
         this.mapManager = new MapManager(
             mapViewer.workerPool.size * 2,
             this.queueLoadMap.bind(this),
@@ -236,6 +239,8 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
 
     override onFrameEnd(): void {
         super.onFrameEnd();
+
+        this.gridRenderer.draw(this.overlayCanvas, this.mapViewer.camera);
 
         if (window.wallpaperFpsLimit !== undefined) {
             this.fpsLimit = window.wallpaperFpsLimit;

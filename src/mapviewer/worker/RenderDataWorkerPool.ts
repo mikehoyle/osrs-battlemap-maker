@@ -83,6 +83,7 @@ export class RenderDataWorkerPool {
         return this.pool.queue((w) => w.loadCachedMapImages());
     }
 
+    // TODO: Remove below
     exportSprites(): QueuedTask<RenderDataWorkerThread, Blob> {
         return this.pool.queue((w) => w.exportSpritesToZip());
     }

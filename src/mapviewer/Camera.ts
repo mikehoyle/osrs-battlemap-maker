@@ -1,7 +1,6 @@
 import { mat4, vec3 } from "gl-matrix";
 
 import { DEGREES_TO_RADIANS, RS_TO_RADIANS } from "../rs/MathConstants";
-import { clamp } from "../util/MathUtil";
 import { Frustum } from "./Frustum";
 
 export interface CameraView {
@@ -21,7 +20,8 @@ export class Camera {
     static moveCameraRotOrigin: vec3 = vec3.create();
     static deltaTemp: vec3 = vec3.create();
 
-    pos: vec3;
+    floatPosition: vec3;
+    snappedPositionCache: vec3 = vec3.create();
 
     pitch: number;
     yaw: number;
@@ -29,7 +29,8 @@ export class Camera {
     projectionType: ProjectionType = ProjectionType.PERSPECTIVE;
 
     fov: number = 90;
-    orthoZoom: number = 15;
+    orthoZoom: number = 75;
+    snapToGrid: boolean = true;
 
     projectionMatrix: mat4 = mat4.create();
     cameraMatrix: mat4 = mat4.create();
@@ -43,9 +44,26 @@ export class Camera {
     updatedLastFrame: boolean = false;
 
     constructor(x: number, y: number, z: number, pitch: number, yaw: number) {
-        this.pos = vec3.fromValues(x, y, z);
+        this.floatPosition = vec3.fromValues(x, y, z);
         this.pitch = pitch;
         this.yaw = yaw;
+    }
+
+    get pos(): vec3 {
+        if (this.snapToGrid) {
+            vec3.set(
+                this.snappedPositionCache,
+                Math.floor(this.floatPosition[0]),
+                Math.floor(this.floatPosition[1]),
+                Math.floor(this.floatPosition[2]),
+            );
+            return this.snappedPositionCache;
+        }
+        return this.floatPosition;
+    }
+
+    set pos(position: vec3) {
+        this.floatPosition = position;
     }
 
     setProjectionType(type: ProjectionType) {
@@ -66,15 +84,15 @@ export class Camera {
                 Camera.moveCameraRotOrigin,
                 -this.pitch * RS_TO_RADIANS,
             );
-        }
+        }*/
         vec3.rotateY(
             Camera.deltaTemp,
             Camera.deltaTemp,
             Camera.moveCameraRotOrigin,
             (this.yaw - 1024) * RS_TO_RADIANS,
-        );*/
+        );
 
-        vec3.add(this.pos, this.pos, Camera.deltaTemp);
+        vec3.add(this.floatPosition, this.floatPosition, Camera.deltaTemp);
         this.updated = true;
         this.updatedPosition = true;
     }
