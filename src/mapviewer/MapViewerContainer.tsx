@@ -87,9 +87,8 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
 
     const onMapClicked = useCallback(
         (x: number, y: number) => {
-            mapViewer.camera.pos[0] = x;
-            mapViewer.camera.pos[2] = y;
-            mapViewer.camera.updated = true;
+            // "y" is actually z from our camera's perspective
+            mapViewer.camera.teleport(x, undefined, y);
             closeWorldMap();
         },
         [mapViewer, closeWorldMap],

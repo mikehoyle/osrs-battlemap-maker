@@ -134,8 +134,7 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         }
 
         if (inputManager.isKeyDown("KeyP")) {
-            camera.pos[0] = 2780;
-            camera.pos[2] = 9537;
+            camera.teleport(2780, undefined, 9537);
         }
     }
 

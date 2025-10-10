@@ -24,11 +24,6 @@ interface MapViewerControlsProps {
     setDownloadProgress: (progress: DownloadProgress | undefined) => void;
 }
 
-enum VarType {
-    VARP = 0,
-    VARBIT = 1,
-}
-
 export const MapViewerControls = memo(
     ({
         renderer,
@@ -41,6 +36,9 @@ export const MapViewerControls = memo(
 
         const [projectionType, setProjectionType] = useState<ProjectionType>(
             mapViewer.camera.projectionType,
+        );
+        const [dashedGridLine, setDashedGridLine] = useState<boolean>(
+            renderer.gridRenderer.getSettings().dashedLine,
         );
 
         const [isExportingBattlemap, setExportingBattlemap] = useState(false);
@@ -106,33 +104,70 @@ export const MapViewerControls = memo(
                 Grid: folder(
                     {
                         Enabled: {
-                            value: mapViewer.renderer.gridRenderer.getSettings().enabled,
+                            value: renderer.gridRenderer.getSettings().enabled,
                             type: LevaInputs.BOOLEAN,
                             onChange: (value: boolean) => {
-                                mapViewer.renderer.gridRenderer.setSettings({
+                                renderer.gridRenderer.setSettings({
                                     enabled: value,
                                 });
                             },
+                            order: 1,
                         },
                         "Line Width": {
-                            value: mapViewer.renderer.gridRenderer.getSettings().width,
+                            value: renderer.gridRenderer.getSettings().widthPx,
                             min: 1,
-                            max: 10,
+                            max: 5,
                             step: 1,
                             onChange: (value: number) => {
-                                mapViewer.renderer.gridRenderer.setSettings({
-                                    width: value,
+                                renderer.gridRenderer.setSettings({
+                                    widthPx: value,
                                 });
                             },
+                            order: 2,
                         },
+                        "Dashed Line": {
+                            value: renderer.gridRenderer.getSettings().dashedLine,
+                            onChange: (value: boolean) => {
+                                setDashedGridLine(value);
+                                renderer.gridRenderer.setSettings({ dashedLine: value });
+                            },
+                            order: 3,
+                        },
+                        ...(dashedGridLine
+                            ? {
+                                  "Dash Length": {
+                                      value: renderer.gridRenderer.getSettings().dashLengthPx,
+                                      min: 1,
+                                      max: 25,
+                                      step: 1,
+                                      onChange: (v) =>
+                                          renderer.gridRenderer.setSettings({
+                                              dashLengthPx: v,
+                                          }),
+                                      order: 4,
+                                  },
+                                  "Gap Length": {
+                                      value: renderer.gridRenderer.getSettings().gapLengthPx,
+                                      min: 1,
+                                      max: 25,
+                                      step: 1,
+                                      onChange: (v) =>
+                                          mapViewer.renderer.gridRenderer.setSettings({
+                                              gapLengthPx: v,
+                                          }),
+                                      order: 5,
+                                  },
+                              }
+                            : {}),
                         Color: {
-                            value: mapViewer.renderer.gridRenderer.getSettings().color,
+                            value: renderer.gridRenderer.getSettings().color,
                             type: LevaInputs.COLOR,
                             onChange: (value: { r: number; g: number; b: number; a?: number }) => {
-                                mapViewer.renderer.gridRenderer.setSettings({
+                                renderer.gridRenderer.setSettings({
                                     color: value,
                                 });
                             },
+                            order: 6,
                         },
                     },
                     { collapsed: false },
@@ -204,7 +239,7 @@ export const MapViewerControls = memo(
                     { collapsed: true },
                 ),
             },
-            [renderer, projectionType, isExportingBattlemap],
+            [renderer, projectionType, isExportingBattlemap, dashedGridLine],
         );
 
         return (

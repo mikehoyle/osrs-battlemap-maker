@@ -4,27 +4,36 @@ import { Camera, ProjectionType } from "../../mapviewer/Camera";
 
 export interface GridSettings {
     enabled: boolean;
-    // Line width (in pixels)
-    width: number;
-    // CSS color string (e.g., 'rgba(255, 255, 255, 0.4)')
+    widthPx: number;
     color: {
         r: number;
         g: number;
         b: number;
         a?: number;
     };
+    dashedLine: boolean;
+    dashLengthPx: number;
+    gapLengthPx: number;
+}
+
+interface Point2D {
+    x: number;
+    y: number;
 }
 
 export class GridRenderer2D {
     private settings: GridSettings = {
         enabled: true,
-        width: 1,
+        widthPx: 1,
         color: {
-            r: 255,
-            g: 255,
-            b: 255,
-            a: 0.4,
+            r: 0,
+            g: 0,
+            b: 0,
+            a: 0.65,
         },
+        dashedLine: false,
+        dashLengthPx: 5,
+        gapLengthPx: 5,
     };
 
     private worldGridSize: number = 1;
@@ -49,7 +58,7 @@ export class GridRenderer2D {
         viewProjMatrix: mat4,
         canvasWidth: number,
         canvasHeight: number,
-    ): { x: number; y: number } {
+    ): Point2D {
         vec4.set(GridRenderer2D.tempVec4, Xw, Yw, Zw, 1.0); // Assuming world vector is (X, Y, Z, 1)
 
         vec4.transformMat4(GridRenderer2D.tempVec4, GridRenderer2D.tempVec4, viewProjMatrix);
@@ -92,7 +101,7 @@ export class GridRenderer2D {
 
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = this.cssColor;
-        ctx.lineWidth = this.settings.width;
+        ctx.lineWidth = this.settings.widthPx;
 
         const worldSpanX = width / zoom;
         const worldSpanY = height / zoom;
@@ -117,11 +126,7 @@ export class GridRenderer2D {
             const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
 
             if (!isNaN(p1.x) && !isNaN(p2.x)) {
-                ctx.beginPath();
-                // Ensure lines are slightly blurred if needed, or use Math.round(x) + 0.5
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.stroke();
+                this.drawLine(ctx, p1, p2);
             }
         }
 
@@ -132,12 +137,19 @@ export class GridRenderer2D {
             const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
 
             if (!isNaN(p1.x) && !isNaN(p2.x)) {
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.stroke();
+                this.drawLine(ctx, p1, p2);
             }
         }
+    }
+
+    private drawLine(ctx: CanvasRenderingContext2D, p1: Point2D, p2: Point2D) {
+        ctx.beginPath();
+        if (this.settings.dashedLine && this.settings.dashLengthPx && this.settings.gapLengthPx) {
+            ctx.setLineDash([this.settings.dashLengthPx, this.settings.gapLengthPx]);
+        }
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
     }
 
     private get cssColor(): string {
