@@ -1,4 +1,4 @@
-import { mat4, vec4 } from "gl-matrix";
+import { mat4, vec2, vec4 } from "gl-matrix";
 
 import { Camera, ProjectionType } from "../../mapviewer/Camera";
 
@@ -14,12 +14,24 @@ export interface GridSettings {
     dashedLine: boolean;
     dashLengthPx: number;
     gapLengthPx: number;
+
+    // Grid Size Config
+    automaticGridSize: boolean;
+    widthInCells: number;
+    heightInCells: number;
 }
 
-interface Point2D {
-    x: number;
-    y: number;
+export interface MaxGridSize {
+    maxWidthInCells: number;
+    maxHeightInCells: number;
 }
+
+export type GridSizeUpdate = MaxGridSize & {
+    widthInCells: number;
+    heightInCells: number;
+};
+
+type MaxGridSizeCallback = (gridSizeUpdate: GridSizeUpdate) => void;
 
 export class GridRenderer2D {
     private settings: GridSettings = {
@@ -34,14 +46,26 @@ export class GridRenderer2D {
         dashedLine: false,
         dashLengthPx: 5,
         gapLengthPx: 5,
+        automaticGridSize: true,
+        // Defaults set high because they should be automatically shrunk on draw
+        widthInCells: 1000,
+        heightInCells: 1000,
     };
 
-    private worldGridSize: number = 1;
+    // Grid can't exceed that which fits on the screen (these default values will shrink
+    // on draw)
+    maxGridSize: MaxGridSize = {
+        maxWidthInCells: 1000,
+        maxHeightInCells: 1000,
+    };
+
+    private worldGridCellSize: number = 1;
+    private maxGridSizeChangedListeners: Set<MaxGridSizeCallback> = new Set();
 
     // Static vector/matrix for temporary calculations
     private static tempVec4: vec4 = vec4.create();
 
-    constructor(private readonly camera: Camera) {}
+    constructor() {}
 
     setSettings(newSettings: Partial<GridSettings>): void {
         this.settings = { ...this.settings, ...newSettings };
@@ -51,6 +75,38 @@ export class GridRenderer2D {
         return this.settings;
     }
 
+    onMaxGridSizeChanged(callback: MaxGridSizeCallback): () => void {
+        this.maxGridSizeChangedListeners.add(callback);
+        return () => this.maxGridSizeChangedListeners.delete(callback);
+    }
+
+    setMaxGridSize(maxWidthInCells: number, maxHeightInCells: number): void {
+        this.maxGridSize = {
+            maxWidthInCells,
+            maxHeightInCells,
+        };
+        if (this.settings.automaticGridSize) {
+            this.settings.widthInCells = maxWidthInCells;
+            this.settings.heightInCells = maxHeightInCells;
+        }
+
+        console.log("Grid size changed", {
+            maxWidthInCells,
+            maxHeightInCells,
+            widthInCells: this.settings.widthInCells,
+            heightInCells: this.settings.heightInCells,
+        });
+        for (const listener of this.maxGridSizeChangedListeners) {
+            console.log("calling listener with grid size updates");
+            listener({
+                maxWidthInCells,
+                maxHeightInCells,
+                widthInCells: this.settings.widthInCells,
+                heightInCells: this.settings.heightInCells,
+            });
+        }
+    }
+
     private projectWorldToScreen(
         Xw: number,
         Yw: number,
@@ -58,15 +114,15 @@ export class GridRenderer2D {
         viewProjMatrix: mat4,
         canvasWidth: number,
         canvasHeight: number,
-    ): Point2D {
-        vec4.set(GridRenderer2D.tempVec4, Xw, Yw, Zw, 1.0); // Assuming world vector is (X, Y, Z, 1)
+    ): vec2 {
+        vec4.set(GridRenderer2D.tempVec4, Xw, Yw, Zw, 1.0);
 
         vec4.transformMat4(GridRenderer2D.tempVec4, GridRenderer2D.tempVec4, viewProjMatrix);
 
         // Perform Perspective Divide (W-divide) to get NDC
         const w = GridRenderer2D.tempVec4[3];
         // Check for points behind the camera (Shouldn't happen here, but you never know)
-        if (w === 0) return { x: NaN, y: NaN };
+        if (w === 0) return [NaN, NaN];
 
         const ndcX = GridRenderer2D.tempVec4[0] / w; // [-1, 1]
         const ndcY = GridRenderer2D.tempVec4[1] / w; // [-1, 1]
@@ -80,13 +136,15 @@ export class GridRenderer2D {
         // A common pattern is: (NDC Y=-1 is screen Y=canvasHeight)
         const screenY = (ndcY * -0.5 + 0.5) * canvasHeight;
 
-        return { x: screenX, y: screenY };
+        return [screenX, screenY];
     }
 
     draw(overlayCanvas: HTMLCanvasElement, camera: Camera): void {
         const ctx = overlayCanvas.getContext("2d");
+        const devicePixelRatio = window.devicePixelRatio || 1;
         if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
             // Clear if disabled or not in Ortho mode
+            // (the latter should never happen in this version, but who knows)
             if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             return;
         }
@@ -95,60 +153,89 @@ export class GridRenderer2D {
         const width = overlayCanvas.width;
         const height = overlayCanvas.height;
         const viewProjMatrix = camera.viewProjMatrix;
-        const gridSize = this.worldGridSize;
+        const gridSize = this.worldGridCellSize;
         const camPos = camera.pos;
         const zoom = camera.orthoZoom;
 
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = this.cssColor;
-        ctx.lineWidth = this.settings.widthPx;
+        ctx.lineWidth = this.settings.widthPx * devicePixelRatio;
 
-        const worldSpanX = width / zoom;
-        const worldSpanY = height / zoom;
+        const halfWorldSpanX = width / zoom;
+        const halfWorldSpanY = height / zoom;
 
         const camX = camPos[0];
         const camZ = camPos[2];
 
-        const minX = camX - worldSpanX;
-        const maxX = camX + worldSpanX;
-        const minZ = camZ - worldSpanY;
-        const maxZ = camZ + worldSpanY;
+        const minX = camX - halfWorldSpanX;
+        const maxX = camX + halfWorldSpanX;
+        const minZ = camZ - halfWorldSpanY;
+        const maxZ = camZ + halfWorldSpanY;
 
         // Find the first grid line that is a multiple of gridSize
         let firstX = Math.floor(minX / gridSize) * gridSize;
         let firstZ = Math.floor(minZ / gridSize) * gridSize;
 
-        // --- 2. Draw Vertical Lines (X-axis in world) ---
+        // Vertical Lines (X-axis)
         for (let Xw = firstX; Xw <= maxX + gridSize; Xw += gridSize) {
-            // Project two points along the Z-range of the screen
-            // The map plane is at Y=0 (vertical world component)
             const p1 = this.projectWorldToScreen(Xw, 0, maxZ, viewProjMatrix, width, height);
             const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
 
-            if (!isNaN(p1.x) && !isNaN(p2.x)) {
+            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
                 this.drawLine(ctx, p1, p2);
             }
         }
 
-        // --- 3. Draw Horizontal Lines (Z-axis in world) ---
+        // Horizontal Lines (Z-axis)
         for (let Zw = firstZ; Zw <= maxZ + gridSize; Zw += gridSize) {
-            // Project two points along the X-range of the screen
             const p1 = this.projectWorldToScreen(minX, 0, Zw, viewProjMatrix, width, height);
             const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
 
-            if (!isNaN(p1.x) && !isNaN(p2.x)) {
+            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
                 this.drawLine(ctx, p1, p2);
             }
         }
+
+        const maxWidthInCells = Math.floor(halfWorldSpanX) * 2;
+        const maxHeightInCells = Math.floor(halfWorldSpanY) * 2;
+        if (
+            maxWidthInCells !== this.maxGridSize.maxWidthInCells ||
+            maxHeightInCells !== this.maxGridSize.maxHeightInCells
+        ) {
+            this.setMaxGridSize(maxWidthInCells, maxHeightInCells);
+        }
+
+        // Draw the border rect which occludes the not-in-play grid cells
+        const cellSizePx = width / (halfWorldSpanX * 2 * gridSize);
+
+        const startPointXPx = (width - this.settings.widthInCells * cellSizePx) / 2;
+        const startPointYPx = (height - this.settings.heightInCells * cellSizePx) / 2;
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.beginPath();
+        ctx.rect(0, 0, width, height);
+        ctx.moveTo(startPointXPx, startPointYPx);
+        ctx.rect(
+            startPointXPx,
+            startPointYPx,
+            this.settings.widthInCells * cellSizePx,
+            this.settings.heightInCells * cellSizePx,
+        );
+        // Even-odd will fill the outer "border" rect
+        ctx.fill("evenodd");
     }
 
-    private drawLine(ctx: CanvasRenderingContext2D, p1: Point2D, p2: Point2D) {
+    private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2) {
+        const devicePixelRatio = window.devicePixelRatio || 1;
         ctx.beginPath();
         if (this.settings.dashedLine && this.settings.dashLengthPx && this.settings.gapLengthPx) {
-            ctx.setLineDash([this.settings.dashLengthPx, this.settings.gapLengthPx]);
+            ctx.setLineDash([
+                this.settings.dashLengthPx * devicePixelRatio,
+                this.settings.gapLengthPx * devicePixelRatio,
+            ]);
         }
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
+        ctx.moveTo(p1[0], p1[1]);
+        ctx.lineTo(p2[0], p2[1]);
         ctx.stroke();
     }
 

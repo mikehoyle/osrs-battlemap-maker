@@ -56,6 +56,12 @@ export const MapViewerControls = memo(
             Direction: { value: directionControls, editable: false },
         };
 
+        const [gridSize, setGridSize] = useState({
+            ...renderer.gridRenderer.maxGridSize,
+            widthInCells: renderer.gridRenderer.getSettings().widthInCells,
+            heightInCells: renderer.gridRenderer.getSettings().heightInCells,
+        });
+
         useEffect(() => {
             function handleKeyDown(e: KeyboardEvent) {
                 if (e.repeat) {
@@ -83,7 +89,7 @@ export const MapViewerControls = memo(
         }
 
         useControls(
-            {
+            () => ({
                 Camera: folder(
                     {
                         ...createCameraControls(mapViewer),
@@ -103,72 +109,139 @@ export const MapViewerControls = memo(
                 ),
                 Grid: folder(
                     {
-                        Enabled: {
-                            value: renderer.gridRenderer.getSettings().enabled,
-                            type: LevaInputs.BOOLEAN,
-                            onChange: (value: boolean) => {
-                                renderer.gridRenderer.setSettings({
-                                    enabled: value,
-                                });
+                        Appearance: folder(
+                            {
+                                Enabled: {
+                                    value: renderer.gridRenderer.getSettings().enabled,
+                                    type: LevaInputs.BOOLEAN,
+                                    onChange: (value: boolean) => {
+                                        renderer.gridRenderer.setSettings({
+                                            enabled: value,
+                                        });
+                                    },
+                                    order: 1,
+                                },
+                                "Line Width": {
+                                    value: renderer.gridRenderer.getSettings().widthPx,
+                                    min: 0.5,
+                                    max: 5,
+                                    step: 0.5,
+                                    onChange: (value: number) => {
+                                        renderer.gridRenderer.setSettings({
+                                            widthPx: value,
+                                        });
+                                    },
+                                    order: 2,
+                                },
+                                "Dashed Line": {
+                                    value: renderer.gridRenderer.getSettings().dashedLine,
+                                    onChange: (value: boolean) => {
+                                        setDashedGridLine(value);
+                                        renderer.gridRenderer.setSettings({ dashedLine: value });
+                                    },
+                                    order: 3,
+                                },
+                                ...(dashedGridLine
+                                    ? {
+                                          "Dash Length": {
+                                              value: renderer.gridRenderer.getSettings()
+                                                  .dashLengthPx,
+                                              min: 1,
+                                              max: 25,
+                                              step: 1,
+                                              onChange: (v) =>
+                                                  renderer.gridRenderer.setSettings({
+                                                      dashLengthPx: v,
+                                                  }),
+                                              order: 4,
+                                          },
+                                          "Gap Length": {
+                                              value: renderer.gridRenderer.getSettings()
+                                                  .gapLengthPx,
+                                              min: 1,
+                                              max: 25,
+                                              step: 1,
+                                              onChange: (v) =>
+                                                  mapViewer.renderer.gridRenderer.setSettings({
+                                                      gapLengthPx: v,
+                                                  }),
+                                              order: 5,
+                                          },
+                                      }
+                                    : {}),
+                                Color: {
+                                    value: renderer.gridRenderer.getSettings().color,
+                                    type: LevaInputs.COLOR,
+                                    onChange: (value: {
+                                        r: number;
+                                        g: number;
+                                        b: number;
+                                        a?: number;
+                                    }) => {
+                                        renderer.gridRenderer.setSettings({
+                                            color: value,
+                                        });
+                                    },
+                                    order: 6,
+                                },
                             },
-                            order: 1,
-                        },
-                        "Line Width": {
-                            value: renderer.gridRenderer.getSettings().widthPx,
-                            min: 1,
-                            max: 5,
-                            step: 1,
-                            onChange: (value: number) => {
-                                renderer.gridRenderer.setSettings({
-                                    widthPx: value,
-                                });
+                            { collapsed: false, order: 0 },
+                        ),
+                        Size: folder(
+                            {
+                                Automatic: {
+                                    value: renderer.gridRenderer.getSettings().automaticGridSize,
+                                    type: LevaInputs.BOOLEAN,
+                                    onChange: (value: boolean) => {
+                                        renderer.gridRenderer.setSettings({
+                                            automaticGridSize: value,
+                                        });
+                                    },
+                                    order: 0,
+                                },
+                                Width: {
+                                    value: gridSize.widthInCells,
+                                    min: 4,
+                                    max: gridSize.maxWidthInCells,
+                                    step: 2,
+                                    onChange: (value: number) => {
+                                        const widthInCells = Math.min(
+                                            value,
+                                            gridSize.maxWidthInCells,
+                                        );
+                                        setGridSize({
+                                            ...gridSize,
+                                            widthInCells,
+                                        });
+                                        renderer.gridRenderer.setSettings({
+                                            widthInCells,
+                                        });
+                                    },
+                                    order: 1,
+                                },
+                                Height: {
+                                    value: gridSize.heightInCells,
+                                    min: 4,
+                                    max: gridSize.maxHeightInCells,
+                                    step: 2,
+                                    onChange: (value: number) => {
+                                        const heightInCells = Math.min(
+                                            value,
+                                            gridSize.maxHeightInCells,
+                                        );
+                                        setGridSize({
+                                            ...gridSize,
+                                            heightInCells,
+                                        });
+                                        renderer.gridRenderer.setSettings({
+                                            heightInCells,
+                                        });
+                                    },
+                                    order: 2,
+                                },
                             },
-                            order: 2,
-                        },
-                        "Dashed Line": {
-                            value: renderer.gridRenderer.getSettings().dashedLine,
-                            onChange: (value: boolean) => {
-                                setDashedGridLine(value);
-                                renderer.gridRenderer.setSettings({ dashedLine: value });
-                            },
-                            order: 3,
-                        },
-                        ...(dashedGridLine
-                            ? {
-                                  "Dash Length": {
-                                      value: renderer.gridRenderer.getSettings().dashLengthPx,
-                                      min: 1,
-                                      max: 25,
-                                      step: 1,
-                                      onChange: (v) =>
-                                          renderer.gridRenderer.setSettings({
-                                              dashLengthPx: v,
-                                          }),
-                                      order: 4,
-                                  },
-                                  "Gap Length": {
-                                      value: renderer.gridRenderer.getSettings().gapLengthPx,
-                                      min: 1,
-                                      max: 25,
-                                      step: 1,
-                                      onChange: (v) =>
-                                          mapViewer.renderer.gridRenderer.setSettings({
-                                              gapLengthPx: v,
-                                          }),
-                                      order: 5,
-                                  },
-                              }
-                            : {}),
-                        Color: {
-                            value: renderer.gridRenderer.getSettings().color,
-                            type: LevaInputs.COLOR,
-                            onChange: (value: { r: number; g: number; b: number; a?: number }) => {
-                                renderer.gridRenderer.setSettings({
-                                    color: value,
-                                });
-                            },
-                            order: 6,
-                        },
+                            { collapsed: false, order: 1 },
+                        ),
                     },
                     { collapsed: false },
                 ),
@@ -238,9 +311,15 @@ export const MapViewerControls = memo(
                     },
                     { collapsed: true },
                 ),
-            },
-            [renderer, projectionType, isExportingBattlemap, dashedGridLine],
+            }),
+            [renderer, projectionType, isExportingBattlemap, dashedGridLine, gridSize],
         );
+
+        useEffect(() => {
+            return renderer.gridRenderer.onMaxGridSizeChanged((gridSize) => {
+                setGridSize(gridSize);
+            });
+        }, [renderer.gridRenderer]);
 
         return (
             <Leva
@@ -270,8 +349,8 @@ function createCameraControls(mapViewer: MapViewer): Schema {
         return {
             Zoom: {
                 value: mapViewer.camera.orthoZoom,
-                min: 1,
-                max: 100,
+                min: 15,
+                max: 200,
                 step: 1,
                 onChange: (v: number) => {
                     mapViewer.camera.orthoZoom = v;

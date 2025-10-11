@@ -17,7 +17,7 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
 
     constructor(public mapViewer: MapViewer) {
         super();
-        this.gridRenderer = new GridRenderer2D(mapViewer.camera);
+        this.gridRenderer = new GridRenderer2D();
         this.mapManager = new MapManager(
             mapViewer.workerPool.size * 2,
             this.queueLoadMap.bind(this),

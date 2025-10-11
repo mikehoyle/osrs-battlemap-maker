@@ -4,6 +4,7 @@
     -   Possible option: html2canvas
     -   Consider upscaling canvas height/width first for better resolution
     -   Resolution options
+-   Restrict width options (and other ints?)
 -   Remove pointer-lock (InputManager, MapViewerControls)
 -   Limit pitch/yaw -- no pitch changes, yaw only in 90deg increments
 -   Strip out extraneous options (need to identify all options)

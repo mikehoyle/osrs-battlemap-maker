@@ -774,6 +774,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     }
 
     override onResize(width: number, height: number): void {
+        super.onResize(width, height);
         this.app.resize(width, height);
     }
 
