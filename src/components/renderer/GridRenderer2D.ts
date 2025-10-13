@@ -27,6 +27,7 @@ export interface MaxGridSize {
 }
 
 export type GridSizeUpdate = MaxGridSize & {
+    automaticGridSize: boolean;
     widthInCells: number;
     heightInCells: number;
 };
@@ -71,7 +72,31 @@ export class GridRenderer2D {
     constructor() {}
 
     setSettings(newSettings: Partial<GridSettings>): void {
+        const oldSettings = this.settings;
         this.settings = { ...this.settings, ...newSettings };
+
+        if (!oldSettings.automaticGridSize && newSettings.automaticGridSize) {
+            this.settings.widthInCells = this.maxGridSize.maxWidthInCells;
+            this.settings.heightInCells = this.maxGridSize.maxHeightInCells;
+            this.setMaxGridSize(
+                this.maxGridSize.maxWidthInCells,
+                this.maxGridSize.maxHeightInCells,
+            );
+            return;
+        }
+
+        if (
+            this.settings.automaticGridSize &&
+            (this.settings.widthInCells < this.maxGridSize.maxWidthInCells ||
+                this.settings.heightInCells > this.maxGridSize.maxHeightInCells)
+        ) {
+            this.settings.automaticGridSize = false;
+            this.setMaxGridSize(
+                this.maxGridSize.maxWidthInCells,
+                this.maxGridSize.maxHeightInCells,
+            );
+            return;
+        }
     }
 
     getSettings(): GridSettings {
@@ -97,6 +122,7 @@ export class GridRenderer2D {
             listener({
                 maxWidthInCells,
                 maxHeightInCells,
+                automaticGridSize: this.settings.automaticGridSize,
                 widthInCells: this.settings.widthInCells,
                 heightInCells: this.settings.heightInCells,
             });

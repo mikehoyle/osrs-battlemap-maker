@@ -2,7 +2,11 @@ import { Leva, LevaInputs, button, folder, useControls } from "leva";
 import { Schema } from "leva/dist/declarations/src/types";
 import { memo, useEffect, useState } from "react";
 
-import { GridRenderer2D, MINIMUM_GRID_SIZE } from "../components/renderer/GridRenderer2D";
+import {
+    GridRenderer2D,
+    GridSettings,
+    MINIMUM_GRID_SIZE,
+} from "../components/renderer/GridRenderer2D";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { isTouchDevice } from "../util/DeviceUtil";
 import { downloadBlob } from "../util/DownloadUtil";
@@ -60,6 +64,7 @@ export const MapViewerControls = memo(
 
         const [gridSize, setGridSize] = useState({
             ...renderer.gridRenderer.maxGridSize,
+            automaticGridSize: renderer.gridRenderer.getSettings().automaticGridSize,
             widthInCells: renderer.gridRenderer.getSettings().widthInCells,
             heightInCells: renderer.gridRenderer.getSettings().heightInCells,
         });
@@ -270,10 +275,10 @@ export const MapViewerControls = memo(
         );
 
         const [, setGridSizeLeva] = useControls(
-            `Grid.Size-${gridSize.maxWidthInCells}-${gridSize.maxHeightInCells}`, // dynamic key
+            "Grid.Size",
             () => ({
                 Automatic: {
-                    value: renderer.gridRenderer.getSettings().automaticGridSize,
+                    value: gridSize.automaticGridSize,
                     type: LevaInputs.BOOLEAN,
                     onChange: (value: boolean) => {
                         renderer.gridRenderer.setSettings({
@@ -284,10 +289,11 @@ export const MapViewerControls = memo(
                 },
                 Width: {
                     value: gridSize.widthInCells,
-                    min: 4,
+                    min: MINIMUM_GRID_SIZE,
                     max: gridSize.maxWidthInCells,
                     step: 2,
                     onChange: (value: number) => {
+                        console.log("width change", value);
                         const widthInCells =
                             Math.round(
                                 Math.max(
@@ -295,10 +301,6 @@ export const MapViewerControls = memo(
                                     Math.min(value, gridSize.maxWidthInCells),
                                 ) / 2,
                             ) * 2;
-                        setGridSize({
-                            ...gridSize,
-                            widthInCells,
-                        });
                         renderer.gridRenderer.setSettings({
                             widthInCells,
                         });
@@ -307,7 +309,7 @@ export const MapViewerControls = memo(
                 },
                 Height: {
                     value: gridSize.heightInCells,
-                    min: 4,
+                    min: MINIMUM_GRID_SIZE,
                     max: gridSize.maxHeightInCells,
                     step: 2,
                     onChange: (value: number) => {
@@ -318,10 +320,6 @@ export const MapViewerControls = memo(
                                     Math.min(value, gridSize.maxHeightInCells),
                                 ) / 2,
                             ) * 2;
-                        setGridSize({
-                            ...gridSize,
-                            heightInCells,
-                        });
                         renderer.gridRenderer.setSettings({
                             heightInCells,
                         });
@@ -336,8 +334,19 @@ export const MapViewerControls = memo(
         useEffect(() => {
             return renderer.gridRenderer.onMaxGridSizeChanged((gridSize) => {
                 console.log("Grid size changed", gridSize);
-                setGridSize(gridSize);
+
+                // It's awkward, but we set the grid size in Leva before AND after the
+                // grid size (max size) update, because max can't go below the current value,
+                // and the setting can't go above the max value.
+
                 setGridSizeLeva({
+                    Automatic: gridSize.automaticGridSize,
+                    Width: gridSize.widthInCells,
+                    Height: gridSize.heightInCells,
+                });
+                setGridSize(() => gridSize);
+                setGridSizeLeva({
+                    Automatic: gridSize.automaticGridSize,
                     Width: gridSize.widthInCells,
                     Height: gridSize.heightInCells,
                 });
