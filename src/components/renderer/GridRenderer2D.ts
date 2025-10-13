@@ -93,14 +93,7 @@ export class GridRenderer2D {
             this.settings.heightInCells = maxHeightInCells;
         }
 
-        console.log("Grid size changed", {
-            maxWidthInCells,
-            maxHeightInCells,
-            widthInCells: this.settings.widthInCells,
-            heightInCells: this.settings.heightInCells,
-        });
         for (const listener of this.maxGridSizeChangedListeners) {
-            console.log("calling listener with grid size updates");
             listener({
                 maxWidthInCells,
                 maxHeightInCells,

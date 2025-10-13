@@ -107,153 +107,14 @@ export const MapViewerControls = memo(
                         },
                         Controls: folder(controlsSchema, { collapsed: true, order: 999 }),
                     },
-                    { collapsed: false },
+                    { collapsed: false, order: 0 },
                 ),
                 Grid: folder(
                     {
-                        Appearance: folder(
-                            {
-                                Enabled: {
-                                    value: renderer.gridRenderer.getSettings().enabled,
-                                    type: LevaInputs.BOOLEAN,
-                                    onChange: (value: boolean) => {
-                                        renderer.gridRenderer.setSettings({
-                                            enabled: value,
-                                        });
-                                    },
-                                    order: 1,
-                                },
-                                "Line Width": {
-                                    value: renderer.gridRenderer.getSettings().widthPx,
-                                    min: 0.5,
-                                    max: 5,
-                                    step: 0.5,
-                                    onChange: (value: number) => {
-                                        renderer.gridRenderer.setSettings({
-                                            widthPx: value,
-                                        });
-                                    },
-                                    order: 2,
-                                },
-                                "Dashed Line": {
-                                    value: renderer.gridRenderer.getSettings().dashedLine,
-                                    onChange: (value: boolean) => {
-                                        setDashedGridLine(value);
-                                        renderer.gridRenderer.setSettings({ dashedLine: value });
-                                    },
-                                    order: 3,
-                                },
-                                ...(dashedGridLine
-                                    ? {
-                                          "Dash Length": {
-                                              value: renderer.gridRenderer.getSettings()
-                                                  .dashLengthPx,
-                                              min: 1,
-                                              max: 25,
-                                              step: 1,
-                                              onChange: (v) =>
-                                                  renderer.gridRenderer.setSettings({
-                                                      dashLengthPx: v,
-                                                  }),
-                                              order: 4,
-                                          },
-                                          "Gap Length": {
-                                              value: renderer.gridRenderer.getSettings()
-                                                  .gapLengthPx,
-                                              min: 1,
-                                              max: 25,
-                                              step: 1,
-                                              onChange: (v) =>
-                                                  mapViewer.renderer.gridRenderer.setSettings({
-                                                      gapLengthPx: v,
-                                                  }),
-                                              order: 5,
-                                          },
-                                      }
-                                    : {}),
-                                Color: {
-                                    value: renderer.gridRenderer.getSettings().color,
-                                    type: LevaInputs.COLOR,
-                                    onChange: (value: {
-                                        r: number;
-                                        g: number;
-                                        b: number;
-                                        a?: number;
-                                    }) => {
-                                        renderer.gridRenderer.setSettings({
-                                            color: value,
-                                        });
-                                    },
-                                    order: 6,
-                                },
-                            },
-                            { collapsed: false, order: 0 },
-                        ),
-                        Size: folder(
-                            {
-                                Automatic: {
-                                    value: renderer.gridRenderer.getSettings().automaticGridSize,
-                                    type: LevaInputs.BOOLEAN,
-                                    onChange: (value: boolean) => {
-                                        renderer.gridRenderer.setSettings({
-                                            automaticGridSize: value,
-                                        });
-                                    },
-                                    order: 0,
-                                },
-                                Width: {
-                                    value: gridSize.widthInCells,
-                                    min: 4,
-                                    max: gridSize.maxWidthInCells,
-                                    step: 2,
-                                    onChange: (value: number) => {
-                                        const widthInCells =
-                                            Math.round(
-                                                Math.max(
-                                                    MINIMUM_GRID_SIZE,
-                                                    Math.min(value, gridSize.maxWidthInCells),
-                                                ) / 2,
-                                            ) * 2;
-                                        setGridSize({
-                                            ...gridSize,
-                                            widthInCells,
-                                        });
-                                        renderer.gridRenderer.setSettings({
-                                            widthInCells,
-                                        });
-                                    },
-                                    order: 1,
-                                },
-                                Height: {
-                                    value: gridSize.heightInCells,
-                                    min: 4,
-                                    max: gridSize.maxHeightInCells,
-                                    step: 2,
-                                    onChange: (value: number) => {
-                                        const heightInCells =
-                                            Math.round(
-                                                Math.max(
-                                                    MINIMUM_GRID_SIZE,
-                                                    Math.min(value, gridSize.maxHeightInCells),
-                                                ) / 2,
-                                            ) * 2;
-                                        setGridSize({
-                                            ...gridSize,
-                                            heightInCells,
-                                        });
-                                        renderer.gridRenderer.setSettings({
-                                            heightInCells,
-                                        });
-                                    },
-                                    order: 2,
-                                },
-                            },
-                            { collapsed: false, order: 1 },
-                        ),
+                        // Grid sub-folders configured below
                     },
-                    { collapsed: false },
+                    { collapsed: false, order: 1 },
                 ),
-                // Render distance options removed -- not really relevant for top-down only
                 Cache: folder(
                     {
                         Version: {
@@ -275,7 +136,7 @@ export const MapViewerControls = memo(
                             },
                         },
                     },
-                    { collapsed: true },
+                    { collapsed: true, order: 2 },
                 ),
                 Render: folder(
                     {
@@ -300,7 +161,7 @@ export const MapViewerControls = memo(
                         },
                         ...renderer.getControls(),
                     },
-                    { collapsed: true },
+                    { collapsed: true, order: 3 },
                 ),
                 Export: folder(
                     {
@@ -328,15 +189,158 @@ export const MapViewerControls = memo(
                             { disabled: isExportingBattlemap },
                         ),
                     },
-                    { collapsed: true },
+                    { collapsed: true, order: 4 },
                 ),
             }),
             [renderer, projectionType, isExportingBattlemap, dashedGridLine, gridSize],
         );
 
+        useControls(
+            "Grid.Appearance",
+            {
+                Enabled: {
+                    value: renderer.gridRenderer.getSettings().enabled,
+                    type: LevaInputs.BOOLEAN,
+                    onChange: (value: boolean) => {
+                        renderer.gridRenderer.setSettings({
+                            enabled: value,
+                        });
+                    },
+                    order: 1,
+                },
+                "Line Width": {
+                    value: renderer.gridRenderer.getSettings().widthPx,
+                    min: 0.5,
+                    max: 5,
+                    step: 0.5,
+                    onChange: (value: number) => {
+                        renderer.gridRenderer.setSettings({
+                            widthPx: value,
+                        });
+                    },
+                    order: 2,
+                },
+                "Dashed Line": {
+                    value: renderer.gridRenderer.getSettings().dashedLine,
+                    onChange: (value: boolean) => {
+                        setDashedGridLine(value);
+                        renderer.gridRenderer.setSettings({ dashedLine: value });
+                    },
+                    order: 3,
+                },
+                ...(dashedGridLine
+                    ? {
+                          "Dash Length": {
+                              value: renderer.gridRenderer.getSettings().dashLengthPx,
+                              min: 1,
+                              max: 25,
+                              step: 1,
+                              onChange: (v) =>
+                                  renderer.gridRenderer.setSettings({
+                                      dashLengthPx: v,
+                                  }),
+                              order: 4,
+                          },
+                          "Gap Length": {
+                              value: renderer.gridRenderer.getSettings().gapLengthPx,
+                              min: 1,
+                              max: 25,
+                              step: 1,
+                              onChange: (v) =>
+                                  mapViewer.renderer.gridRenderer.setSettings({
+                                      gapLengthPx: v,
+                                  }),
+                              order: 5,
+                          },
+                      }
+                    : {}),
+                Color: {
+                    value: renderer.gridRenderer.getSettings().color,
+                    type: LevaInputs.COLOR,
+                    onChange: (value: { r: number; g: number; b: number; a?: number }) => {
+                        renderer.gridRenderer.setSettings({
+                            color: value,
+                        });
+                    },
+                    order: 6,
+                },
+            },
+            { collapsed: false, order: 0 },
+            [dashedGridLine],
+        );
+
+        const [, setGridSizeLeva] = useControls(
+            `Grid.Size-${gridSize.maxWidthInCells}-${gridSize.maxHeightInCells}`, // dynamic key
+            () => ({
+                Automatic: {
+                    value: renderer.gridRenderer.getSettings().automaticGridSize,
+                    type: LevaInputs.BOOLEAN,
+                    onChange: (value: boolean) => {
+                        renderer.gridRenderer.setSettings({
+                            automaticGridSize: value,
+                        });
+                    },
+                    order: 0,
+                },
+                Width: {
+                    value: gridSize.widthInCells,
+                    min: 4,
+                    max: gridSize.maxWidthInCells,
+                    step: 2,
+                    onChange: (value: number) => {
+                        const widthInCells =
+                            Math.round(
+                                Math.max(
+                                    MINIMUM_GRID_SIZE,
+                                    Math.min(value, gridSize.maxWidthInCells),
+                                ) / 2,
+                            ) * 2;
+                        setGridSize({
+                            ...gridSize,
+                            widthInCells,
+                        });
+                        renderer.gridRenderer.setSettings({
+                            widthInCells,
+                        });
+                    },
+                    order: 1,
+                },
+                Height: {
+                    value: gridSize.heightInCells,
+                    min: 4,
+                    max: gridSize.maxHeightInCells,
+                    step: 2,
+                    onChange: (value: number) => {
+                        const heightInCells =
+                            Math.round(
+                                Math.max(
+                                    MINIMUM_GRID_SIZE,
+                                    Math.min(value, gridSize.maxHeightInCells),
+                                ) / 2,
+                            ) * 2;
+                        setGridSize({
+                            ...gridSize,
+                            heightInCells,
+                        });
+                        renderer.gridRenderer.setSettings({
+                            heightInCells,
+                        });
+                    },
+                    order: 2,
+                },
+            }),
+            { collapsed: false, order: 1 },
+            [gridSize],
+        );
+
         useEffect(() => {
             return renderer.gridRenderer.onMaxGridSizeChanged((gridSize) => {
+                console.log("Grid size changed", gridSize);
                 setGridSize(gridSize);
+                setGridSizeLeva({
+                    Width: gridSize.widthInCells,
+                    Height: gridSize.heightInCells,
+                });
             });
         }, [renderer.gridRenderer]);
 
