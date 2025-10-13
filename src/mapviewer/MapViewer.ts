@@ -377,4 +377,49 @@ export class MapViewer {
         this.minimapImageUrls.clear();
         this.loadingMapImageIds.clear();
     }
+
+    async exportBattlemap(): Promise<Blob | null> {
+        const mapCanvas = this.renderer.canvas;
+        const overlayCanvas = this.renderer.overlayCanvas;
+        const selectedGridBounds = this.renderer.gridRenderer.getSelectedGridBounds(
+            overlayCanvas,
+            this.camera,
+        );
+
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = selectedGridBounds.width;
+        exportCanvas.height = selectedGridBounds.height;
+        const ctx = exportCanvas.getContext("2d");
+
+        const mapBitmap = await createImageBitmap(mapCanvas);
+        ctx!.drawImage(
+            mapBitmap,
+            // Source coords
+            selectedGridBounds.topLeft[0],
+            selectedGridBounds.topLeft[1],
+            selectedGridBounds.width,
+            selectedGridBounds.height,
+            // Destination coords
+            0,
+            0,
+            selectedGridBounds.width,
+            selectedGridBounds.height,
+        );
+
+        ctx!.drawImage(
+            overlayCanvas,
+            // Source coords
+            selectedGridBounds.topLeft[0],
+            selectedGridBounds.topLeft[1],
+            selectedGridBounds.width,
+            selectedGridBounds.height,
+            // Destination coords
+            0,
+            0,
+            selectedGridBounds.width,
+            selectedGridBounds.height,
+        );
+
+        return await new Promise((resolve) => exportCanvas.toBlob(resolve, "image/png"));
+    }
 }

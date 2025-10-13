@@ -1,9 +1,5 @@
 # Main stuff
 
--   Export (including grid)
-    -   Possible option: html2canvas
-    -   Consider upscaling canvas height/width first for better resolution
-    -   Resolution options
 -   Restrict width options (and other ints?)
 -   Remove pointer-lock (InputManager, MapViewerControls)
 -   Limit pitch/yaw -- no pitch changes, yaw only in 90deg increments
@@ -16,6 +12,10 @@
 -   Click and drag moves map
 -   Scroll zooms
 -   Fix weird inverted arrow keys
+
+# Possible small additions
+
+-   Export resolution options
 
 # Bigger scope stuff
 

@@ -33,6 +33,8 @@ export type GridSizeUpdate = MaxGridSize & {
 
 type MaxGridSizeCallback = (gridSizeUpdate: GridSizeUpdate) => void;
 
+export const MINIMUM_GRID_SIZE: number = 4;
+
 export class GridRenderer2D {
     private settings: GridSettings = {
         enabled: true,
@@ -48,17 +50,18 @@ export class GridRenderer2D {
         gapLengthPx: 5,
         automaticGridSize: true,
         // Defaults set high because they should be automatically shrunk on draw
-        widthInCells: 1000,
-        heightInCells: 1000,
+        widthInCells: 100,
+        heightInCells: 100,
     };
 
     // Grid can't exceed that which fits on the screen (these default values will shrink
     // on draw)
     maxGridSize: MaxGridSize = {
-        maxWidthInCells: 1000,
-        maxHeightInCells: 1000,
+        maxWidthInCells: 100,
+        maxHeightInCells: 100,
     };
 
+    // This can probably be removed, given it never has any effect
     private worldGridCellSize: number = 1;
     private maxGridSizeChangedListeners: Set<MaxGridSizeCallback> = new Set();
 
@@ -206,23 +209,38 @@ export class GridRenderer2D {
         }
 
         // Draw the border rect which occludes the not-in-play grid cells
-        const cellSizePx = width / (halfWorldSpanX * 2 * gridSize);
-
-        const startPointXPx = (width - this.settings.widthInCells * cellSizePx) / 2;
-        const startPointYPx = (height - this.settings.heightInCells * cellSizePx) / 2;
+        const selectedGridBounds = this.getSelectedGridBounds(overlayCanvas, camera);
 
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.beginPath();
         ctx.rect(0, 0, width, height);
-        ctx.moveTo(startPointXPx, startPointYPx);
+        ctx.moveTo(selectedGridBounds.topLeft[0], selectedGridBounds.topLeft[1]);
         ctx.rect(
-            startPointXPx,
-            startPointYPx,
-            this.settings.widthInCells * cellSizePx,
-            this.settings.heightInCells * cellSizePx,
+            selectedGridBounds.topLeft[0],
+            selectedGridBounds.topLeft[1],
+            selectedGridBounds.width,
+            selectedGridBounds.height,
         );
         // Even-odd will fill the outer "border" rect
         ctx.fill("evenodd");
+    }
+
+    getSelectedGridBounds(
+        overlayCanvas: HTMLCanvasElement,
+        camera: Camera,
+    ): { topLeft: vec2; width: number; height: number } {
+        const width = overlayCanvas.width;
+        const height = overlayCanvas.height;
+        const cellSizePx = width / ((width / camera.orthoZoom) * 2 * this.worldGridCellSize);
+
+        return {
+            topLeft: [
+                (width - this.settings.widthInCells * cellSizePx) / 2,
+                (height - this.settings.heightInCells * cellSizePx) / 2,
+            ],
+            width: this.settings.widthInCells * cellSizePx,
+            height: this.settings.heightInCells * cellSizePx,
+        };
     }
 
     private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2) {

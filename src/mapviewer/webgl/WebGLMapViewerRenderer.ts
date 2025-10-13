@@ -140,7 +140,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     frameFxaaDrawCall?: DrawCall;
 
     // Settings
-    maxLevel: number = Scene.MAX_LEVELS - 1;
+    maxLevel: number = 0;
 
     skyColor: vec4 = vec4.fromValues(0, 0, 0, 1);
     fogDepth: number = 16;
@@ -187,7 +187,11 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     async init(): Promise<void> {
         await super.init();
 
-        this.app = PicoGL.createApp(this.canvas);
+        this.app = PicoGL.createApp(this.canvas, {
+            // TODO: consider if this adds performance issues.
+            // Currently it is needed to easily export the image.
+            preserveDrawingBuffer: true,
+        });
         this.gl = this.app.gl as WebGL2RenderingContext;
 
         // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_webgl_provoking_vertex_when_its_available
@@ -203,7 +207,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
         this.hasMultiDraw = !!PicoGL.WEBGL_INFO.MULTI_DRAW_INSTANCED;
 
-        this.mapViewer.workerPool.initLoader(this.dataLoader);
+        await this.mapViewer.workerPool.initLoader(this.dataLoader);
 
         this.gl.getExtension("EXT_float_blend");
 

@@ -2,8 +2,10 @@ import { Leva, LevaInputs, button, folder, useControls } from "leva";
 import { Schema } from "leva/dist/declarations/src/types";
 import { memo, useEffect, useState } from "react";
 
+import { GridRenderer2D, MINIMUM_GRID_SIZE } from "../components/renderer/GridRenderer2D";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { isTouchDevice } from "../util/DeviceUtil";
+import { downloadBlob } from "../util/DownloadUtil";
 import { loadCacheFiles } from "./Caches";
 import { ProjectionType } from "./Camera";
 import { MapViewer } from "./MapViewer";
@@ -205,10 +207,13 @@ export const MapViewerControls = memo(
                                     max: gridSize.maxWidthInCells,
                                     step: 2,
                                     onChange: (value: number) => {
-                                        const widthInCells = Math.min(
-                                            value,
-                                            gridSize.maxWidthInCells,
-                                        );
+                                        const widthInCells =
+                                            Math.round(
+                                                Math.max(
+                                                    MINIMUM_GRID_SIZE,
+                                                    Math.min(value, gridSize.maxWidthInCells),
+                                                ) / 2,
+                                            ) * 2;
                                         setGridSize({
                                             ...gridSize,
                                             widthInCells,
@@ -225,10 +230,13 @@ export const MapViewerControls = memo(
                                     max: gridSize.maxHeightInCells,
                                     step: 2,
                                     onChange: (value: number) => {
-                                        const heightInCells = Math.min(
-                                            value,
-                                            gridSize.maxHeightInCells,
-                                        );
+                                        const heightInCells =
+                                            Math.round(
+                                                Math.max(
+                                                    MINIMUM_GRID_SIZE,
+                                                    Math.min(value, gridSize.maxHeightInCells),
+                                                ) / 2,
+                                            ) * 2;
                                         setGridSize({
                                             ...gridSize,
                                             heightInCells,
@@ -294,8 +302,6 @@ export const MapViewerControls = memo(
                     },
                     { collapsed: true },
                 ),
-                // Menu and Vars removed, unneeded
-                // Record removed
                 Export: folder(
                     {
                         "Export Map": button(
@@ -304,7 +310,20 @@ export const MapViewerControls = memo(
                                     return;
                                 }
                                 setExportingBattlemap(true);
-                                // TODO: Implement this!
+                                mapViewer
+                                    .exportBattlemap()
+                                    .then((blob) => {
+                                        if (!blob) {
+                                            // TODO actual error handling, but I think this should be rare
+                                            console.error("No blob returned");
+                                            return;
+                                        }
+
+                                        downloadBlob(blob);
+                                    })
+                                    .finally(() => {
+                                        setExportingBattlemap(false);
+                                    });
                             },
                             { disabled: isExportingBattlemap },
                         ),
