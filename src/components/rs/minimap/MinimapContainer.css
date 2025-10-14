@@ -6,44 +6,34 @@
     z-index: 10;
 }
 
-.minimap-container .compass {
+.minimap-container .worldmap-button {
     cursor: pointer;
-    clip-path: circle(18px);
     position: absolute;
-    left: -4px;
-    top: -4px;
+    left: 4px;
+    top: 4px;
+    display: flex;
+    flex-direction: row;
+    border-image-source: url(./worldmap-button-nineslice.png);
+    border-image-slice: 16;
+    border-image-width: 24px;
+    border-image-repeat: repeat;
+    padding-right: 20px;
+    align-items: center;
 }
 
-.minimap-container .worldmap-icon {
-    cursor: pointer;
-    position: absolute;
-    left: 144px;
-    top: 128px;
-    width: 32px;
-    height: 32px;
+.worldmap-button .worldmap-icon {
     background-image: url(./worldmap-icon.png);
     background-size: 32px 32px;
+    width: 32px;
+    height: 32px;
 }
 
-.minimap-container .worldmap-icon:hover {
+.worldmap-button:hover .worldmap-icon {
     background-image: url(./worldmap-icon-hover.png);
 }
 
-.minimap-container .minimap {
-    clip-path: circle(77px at 384px 384px);
-    position: absolute;
-    left: -285px;
-    top: -301px;
-    transform-origin: 384px 384px;
-    background-color: black;
-}
-
-.minimap-images {
-    position: relative;
-}
-
-.minimap-image {
-    position: absolute;
-    padding: 0;
-    margin: 0;
+.worldmap-button .worldmap-text {
+    padding-left: 10px;
+    font-size: 24px;
+    font-family: "OSRS Small", serif;
 }

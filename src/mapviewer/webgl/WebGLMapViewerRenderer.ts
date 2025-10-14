@@ -866,9 +866,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         const currInteractions = this.interactions[frameCount % this.interactions.length];
 
         const interactionsStart = performance.now();
-        if (!inputManager.isPointerLock()) {
-            this.checkInteractions(currInteractions);
-        } else if (this.hoveredMapIds.size > 0) {
+        if (this.hoveredMapIds.size > 0) {
             this.hoveredMapIds.clear();
         }
         const interactionsTime = performance.now() - interactionsStart;
@@ -918,28 +916,22 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT0);
         this.app.blitFramebuffer(PicoGL.COLOR_BUFFER_BIT);
 
-        if (!inputManager.isPointerLock()) {
-            const mouseX = inputManager.mouseX;
-            const mouseY = inputManager.mouseY;
-            if (mouseX !== -1 && mouseY !== -1) {
-                if (this.msaaEnabled) {
-                    // TODO: reading from the multisampled framebuffer is not accurate
-                    this.app.drawFramebuffer(this.interactFramebuffer);
-                    this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT1);
-                    this.app.blitFramebuffer(PicoGL.COLOR_BUFFER_BIT);
+        const mouseX = inputManager.mouseX;
+        const mouseY = inputManager.mouseY;
+        if (mouseX !== -1 && mouseY !== -1) {
+            if (this.msaaEnabled) {
+                // TODO: reading from the multisampled framebuffer is not accurate
+                this.app.drawFramebuffer(this.interactFramebuffer);
+                this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT1);
+                this.app.blitFramebuffer(PicoGL.COLOR_BUFFER_BIT);
 
-                    this.app.readFramebuffer(this.interactFramebuffer);
-                    this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT0);
-                } else {
-                    this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT1);
-                }
-
-                currInteractions.read(
-                    this.gl,
-                    (mouseX * pixelRatio) | 0,
-                    (mouseY * pixelRatio) | 0,
-                );
+                this.app.readFramebuffer(this.interactFramebuffer);
+                this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT0);
+            } else {
+                this.gl.readBuffer(PicoGL.COLOR_ATTACHMENT1);
             }
+
+            currInteractions.read(this.gl, (mouseX * pixelRatio) | 0, (mouseY * pixelRatio) | 0);
         }
 
         this.app.disable(PicoGL.DEPTH_TEST);

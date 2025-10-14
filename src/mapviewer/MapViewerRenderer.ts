@@ -72,23 +72,6 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
             cameraSpeedMult = 0.1;
         }
 
-        const deltaPitch = 64 * 5 * deltaTimeSec;
-        const deltaYaw = 64 * 5 * deltaTimeSec;
-
-        // camera direction controls
-        if (inputManager.isKeyDown("ArrowUp")) {
-            camera.updatePitch(camera.pitch, deltaPitch);
-        }
-        if (inputManager.isKeyDown("ArrowDown")) {
-            camera.updatePitch(camera.pitch, -deltaPitch);
-        }
-        if (inputManager.isKeyDown("ArrowRight")) {
-            camera.updateYaw(camera.yaw, deltaYaw);
-        }
-        if (inputManager.isKeyDown("ArrowLeft")) {
-            camera.updateYaw(camera.yaw, -deltaYaw);
-        }
-
         // camera position controls
         let deltaX = 0;
         let deltaY = 0;
@@ -97,33 +80,21 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const deltaPos = 16 * (this.mapViewer.cameraSpeed * cameraSpeedMult) * deltaTimeSec;
         const deltaHeight = 8 * (this.mapViewer.cameraSpeed * cameraSpeedMult) * deltaTimeSec;
 
-        if (inputManager.isKeyDown("KeyW")) {
+        if (inputManager.isKeyDown("KeyW") || inputManager.isKeyDown("ArrowUp")) {
             // Forward
             deltaZ -= deltaPos;
         }
-        if (inputManager.isKeyDown("KeyA")) {
+        if (inputManager.isKeyDown("KeyA") || inputManager.isKeyDown("ArrowLeft")) {
             // Left
             deltaX += deltaPos;
         }
-        if (inputManager.isKeyDown("KeyS")) {
+        if (inputManager.isKeyDown("KeyS") || inputManager.isKeyDown("ArrowDown")) {
             // Back
             deltaZ += deltaPos;
         }
-        if (inputManager.isKeyDown("KeyD")) {
+        if (inputManager.isKeyDown("KeyD") || inputManager.isKeyDown("ArrowRight")) {
             // Right
             deltaX -= deltaPos;
-        }
-        if (inputManager.isKeyDown("KeyE") || inputManager.isKeyDown("KeyR")) {
-            // Move up
-            deltaY -= deltaHeight;
-        }
-        if (
-            inputManager.isKeyDown("KeyQ") ||
-            inputManager.isKeyDown("KeyC") ||
-            inputManager.isKeyDown("KeyF")
-        ) {
-            // Move down
-            deltaY += deltaHeight;
         }
 
         if (deltaX !== 0 || deltaZ !== 0) {
@@ -132,31 +103,25 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         if (deltaY !== 0) {
             camera.move(0, deltaY, 0);
         }
-
-        if (inputManager.isKeyDown("KeyP")) {
-            camera.teleport(2780, undefined, 9537);
-        }
     }
 
     handleMouseInput() {
         const inputManager = this.mapViewer.inputManager;
         const camera = this.mapViewer.camera;
 
-        if (inputManager.isPointerLock()) {
-            this.mapViewer.closeMenu();
-        }
-
         // mouse/touch controls
         const deltaMouseX = inputManager.getDeltaMouseX();
         const deltaMouseY = inputManager.getDeltaMouseY();
 
         if (deltaMouseX !== 0 || deltaMouseY !== 0) {
-            if (inputManager.isTouch) {
-                camera.move(0, clamp(-deltaMouseY, -100, 100) * 0.004, 0);
-            } else {
-                camera.updatePitch(camera.pitch, deltaMouseY * 0.9);
-                camera.updateYaw(camera.yaw, deltaMouseX * -0.9);
-            }
+            camera.move(0, clamp(-deltaMouseY, -100, 100) * 0.004, 0);
+        }
+
+        const deltaScroll = inputManager.getDeltaMouseScroll();
+
+        if (deltaScroll !== 0) {
+            console.log(deltaScroll);
+            camera.orthoZoom -= deltaScroll;
         }
     }
 

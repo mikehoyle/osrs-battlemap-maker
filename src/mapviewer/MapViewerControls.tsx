@@ -293,7 +293,6 @@ export const MapViewerControls = memo(
                     max: gridSize.maxWidthInCells,
                     step: 2,
                     onChange: (value: number) => {
-                        console.log("width change", value);
                         const widthInCells =
                             Math.round(
                                 Math.max(

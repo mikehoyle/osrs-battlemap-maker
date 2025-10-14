@@ -76,27 +76,10 @@ export const MinimapContainer = memo(function MinimapContainer({
 
     return (
         <div className="minimap-container">
-            <img src={frame} />
-
-            <div
-                className="minimap"
-                style={{
-                    transform: `rotate(${yawDegrees}deg)`,
-                }}
-            >
-                <div className="minimap-images">{minimapImages}</div>
+            <div className="worldmap-button" onClick={onWorldMapClick}>
+                <div className="worldmap-icon" />
+                <span className="worldmap-text">World Map</span>
             </div>
-
-            <img
-                className="compass"
-                style={{
-                    transform: `rotate(${yawDegrees}deg)`,
-                }}
-                src={compass}
-                onClick={onCompassClick}
-            />
-
-            <div className="worldmap-icon" onClick={onWorldMapClick} />
         </div>
     );
 });

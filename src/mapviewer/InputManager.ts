@@ -34,6 +34,7 @@ export class InputManager {
 
     deltaMouseX: number = 0;
     deltaMouseY: number = 0;
+    deltaMouseScroll: number = 0;
 
     isTouch: boolean = false;
 
@@ -63,6 +64,7 @@ export class InputManager {
         element.addEventListener("mousemove", this.onMouseMove);
         element.addEventListener("mouseup", this.onMouseUp);
         element.addEventListener("mouseleave", this.onMouseLeave);
+        element.addEventListener("wheel", this.onMouseWheel);
 
         element.addEventListener("touchstart", this.onTouchStart);
         element.addEventListener("touchmove", this.onTouchMove);
@@ -116,10 +118,6 @@ export class InputManager {
         return this.dragX !== -1 && this.dragY !== -1;
     }
 
-    isPointerLock(): boolean {
-        return document.pointerLockElement === this.element;
-    }
-
     isFocused(): boolean {
         return this.mouseX !== -1 && this.mouseY !== -1;
     }
@@ -129,9 +127,6 @@ export class InputManager {
     }
 
     getDeltaMouseX(): number {
-        if (this.isPointerLock()) {
-            return this.deltaMouseX;
-        }
         if (this.isDragging()) {
             return this.dragX - this.mouseX;
         }
@@ -139,13 +134,17 @@ export class InputManager {
     }
 
     getDeltaMouseY(): number {
-        if (this.isPointerLock()) {
-            return this.deltaMouseY;
-        }
         if (this.isDragging()) {
             return this.dragY - this.mouseY;
         }
         return 0;
+    }
+
+    getDeltaMouseScroll(): number {
+        // TODO: Revisit if needed, kinda jank for now, just getting it working
+        const scroll = this.deltaMouseScroll;
+        this.deltaMouseScroll = 0;
+        return scroll;
     }
 
     getGamepad(): Gamepad | null {
@@ -202,10 +201,6 @@ export class InputManager {
         this.mouseX = x;
         this.mouseY = y;
 
-        if (this.isPointerLock()) {
-            this.deltaMouseX -= event.movementX;
-            this.deltaMouseY -= event.movementY;
-        }
         this.isTouch = false;
     };
 
@@ -216,6 +211,10 @@ export class InputManager {
 
     private onMouseLeave = (event: MouseEvent) => {
         this.resetMouse();
+    };
+
+    private onMouseWheel = (event: WheelEvent) => {
+        this.deltaMouseScroll = event.deltaY;
     };
 
     private onTouchStart = (event: TouchEvent) => {
