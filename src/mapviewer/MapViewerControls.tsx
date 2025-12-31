@@ -25,6 +25,7 @@ import { fetchNpcSpawns, getNpcSpawnsUrl } from "./data/npc/NpcSpawn";
 interface MapViewerControlsProps {
     renderer: MapViewerRenderer;
     hideUi: boolean;
+    cameraZoom: number;
     setRenderer: (renderer: MapViewerRenderer) => void;
     setHideUi: (hideUi: boolean | ((hideUi: boolean) => boolean)) => void;
     setDownloadProgress: (progress: DownloadProgress | undefined) => void;
@@ -34,6 +35,7 @@ export const MapViewerControls = memo(
     ({
         renderer,
         hideUi: hidden,
+        cameraZoom,
         setRenderer,
         setHideUi,
         setDownloadProgress,
@@ -95,25 +97,28 @@ export const MapViewerControls = memo(
             rendererOptions[getRendererName(v)] = v;
         }
 
+        const [, setCameraControls] = useControls(
+            "Camera",
+            () => ({
+                ...createCameraControls(mapViewer),
+                "Move Speed": {
+                    value: mapViewer.cameraSpeed,
+                    min: 0.1,
+                    max: 5,
+                    step: 0.1,
+                    onChange: (v: number) => {
+                        mapViewer.cameraSpeed = v;
+                    },
+                    order: 10,
+                },
+                Controls: folder(controlsSchema, { collapsed: true, order: 999 }),
+            }),
+            { collapsed: false, order: 0 },
+            [projectionType],
+        );
+
         useControls(
             () => ({
-                Camera: folder(
-                    {
-                        ...createCameraControls(mapViewer),
-                        "Move Speed": {
-                            value: mapViewer.cameraSpeed,
-                            min: 0.1,
-                            max: 5,
-                            step: 0.1,
-                            onChange: (v: number) => {
-                                mapViewer.cameraSpeed = v;
-                            },
-                            order: 10,
-                        },
-                        Controls: folder(controlsSchema, { collapsed: true, order: 999 }),
-                    },
-                    { collapsed: false, order: 0 },
-                ),
                 Grid: folder(
                     {
                         // Grid sub-folders configured below
@@ -197,8 +202,15 @@ export const MapViewerControls = memo(
                     { collapsed: true, order: 4 },
                 ),
             }),
-            [renderer, projectionType, isExportingBattlemap, dashedGridLine, gridSize],
+            [renderer, isExportingBattlemap],
         );
+
+        // Sync the Leva zoom slider when zoom changes via scroll wheel
+        useEffect(() => {
+            if (mapViewer.camera.projectionType === ProjectionType.ORTHO) {
+                setCameraControls({ Zoom: cameraZoom } as Parameters<typeof setCameraControls>[0]);
+            }
+        }, [cameraZoom, mapViewer.camera.projectionType, setCameraControls]);
 
         useControls(
             "Grid.Appearance",

@@ -6,6 +6,7 @@ import { RendererCanvas } from "../components/renderer/RendererCanvas";
 import { OsrsLoadingBar } from "../components/rs/loading/OsrsLoadingBar";
 import { OsrsMenu, OsrsMenuProps } from "../components/rs/menu/OsrsMenu";
 import { MinimapContainer } from "../components/rs/minimap/MinimapContainer";
+import { PlacesOfInterestDialog } from "../components/rs/places/PlacesOfInterestDialog";
 import { WorldMapModal } from "../components/rs/worldmap/WorldMapModal";
 import { RS_TO_DEGREES } from "../rs/MathConstants";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
@@ -15,6 +16,7 @@ import { MapViewer } from "./MapViewer";
 import "./MapViewerContainer.css";
 import { MapViewerControls } from "./MapViewerControls";
 import { MapViewerRenderer } from "./MapViewerRenderer";
+import { PlaceOfInterest } from "./PlacesOfInterest";
 
 interface MapViewerContainerProps {
     mapViewer: MapViewer;
@@ -30,7 +32,9 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const [hideUi, setHideUi] = useState(false);
     const [fps, setFps] = useState(0);
     const [cameraYaw, setCameraYaw] = useState(mapViewer.camera.getYaw());
+    const [cameraZoom, setCameraZoom] = useState(mapViewer.camera.orthoZoom);
     const [isWorldMapOpen, setWorldMapOpen] = useState<boolean>(false);
+    const [isPlacesDialogOpen, setPlacesDialogOpen] = useState<boolean>(false);
 
     const [menuProps, setMenuProps] = useState<OsrsMenuProps | undefined>(undefined);
 
@@ -50,6 +54,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         if (!hideUi) {
             setFps(Math.round(renderer.stats.frameTimeFps));
             setCameraYaw(mapViewer.camera.getYaw());
+            setCameraZoom(mapViewer.camera.orthoZoom);
         }
 
         if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
@@ -84,6 +89,27 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         setWorldMapOpen(false);
         renderer.canvas.focus();
     }, [renderer]);
+
+    const openPlacesDialog = useCallback(() => {
+        setPlacesDialogOpen(true);
+    }, []);
+
+    const closePlacesDialog = useCallback(() => {
+        setPlacesDialogOpen(false);
+        renderer.canvas.focus();
+    }, [renderer]);
+
+    const onPlaceSelected = useCallback(
+        (place: PlaceOfInterest) => {
+            mapViewer.camera.teleport(place.camera.x, undefined, place.camera.z);
+            renderer.gridRenderer.setSettings({
+                automaticGridSize: false,
+                widthInCells: place.grid.widthInCells,
+                heightInCells: place.grid.heightInCells,
+            });
+        },
+        [mapViewer, renderer],
+    );
 
     const onMapClicked = useCallback(
         (x: number, y: number) => {
@@ -141,6 +167,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             <MapViewerControls
                 renderer={renderer}
                 hideUi={hideUi}
+                cameraZoom={cameraZoom}
                 setRenderer={setRenderer}
                 setHideUi={setHideUi}
                 setDownloadProgress={setDownloadProgress}
@@ -153,6 +180,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                             yawDegrees={(2047 - cameraYaw) * RS_TO_DEGREES}
                             onCompassClick={resetCameraYaw}
                             onWorldMapClick={openWorldMap}
+                            onPlacesOfInterestClick={openPlacesDialog}
                             getPosition={getMapPosition}
                             loadMapImageUrl={loadMinimapImageUrl}
                         />
@@ -166,6 +194,11 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                         onDoubleClick={onMapClicked}
                         getPosition={getMapPosition}
                         loadMapImageUrl={loadMapImageUrl}
+                    />
+                    <PlacesOfInterestDialog
+                        isOpen={isPlacesDialogOpen}
+                        onRequestClose={closePlacesDialog}
+                        onPlaceSelected={onPlaceSelected}
                     />
                 </span>
             )}

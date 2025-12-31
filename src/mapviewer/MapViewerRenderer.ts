@@ -120,8 +120,8 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const deltaScroll = inputManager.getDeltaMouseScroll();
 
         if (deltaScroll !== 0) {
-            console.log(deltaScroll);
-            camera.orthoZoom -= deltaScroll;
+            camera.orthoZoom = clamp(camera.orthoZoom - deltaScroll, 15, 200);
+            camera.updated = true;
         }
     }
 

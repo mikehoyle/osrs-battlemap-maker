@@ -37,3 +37,35 @@
     font-size: 24px;
     font-family: "OSRS Small", serif;
 }
+
+.minimap-container .places-button {
+    cursor: pointer;
+    position: absolute;
+    left: 4px;
+    top: 52px;
+    display: flex;
+    flex-direction: row;
+    border-image-source: url(./worldmap-button-nineslice.png);
+    border-image-slice: 16;
+    border-image-width: 24px;
+    border-image-repeat: repeat;
+    padding-right: 20px;
+    align-items: center;
+}
+
+.places-button .places-icon {
+    background-image: url(./worldmap-icon.png);
+    background-size: 32px 32px;
+    width: 32px;
+    height: 32px;
+}
+
+.places-button:hover .places-icon {
+    background-image: url(./worldmap-icon-hover.png);
+}
+
+.places-button .places-text {
+    padding-left: 10px;
+    font-size: 24px;
+    font-family: "OSRS Small", serif;
+}
