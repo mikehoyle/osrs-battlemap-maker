@@ -1,6 +1,7 @@
 import { mat4, vec2, vec4 } from "gl-matrix";
 
 import { Camera, ProjectionType } from "../../mapviewer/Camera";
+import { RS_TO_RADIANS } from "../../rs/MathConstants";
 
 export interface GridSettings {
     enabled: boolean;
@@ -183,8 +184,19 @@ export class GridRenderer2D {
         ctx.strokeStyle = this.cssColor;
         ctx.lineWidth = this.settings.widthPx * devicePixelRatio;
 
-        const halfWorldSpanX = width / zoom;
-        const halfWorldSpanY = height / zoom;
+        const baseHalfWorldSpanX = width / zoom;
+        const baseHalfWorldSpanY = height / zoom;
+
+        // Account for camera yaw rotation when calculating world bounds.
+        // When the camera is rotated, the visible area is a rotated rectangle.
+        // We need to expand the axis-aligned bounds to cover the rotated view.
+        const yaw = (camera.getYaw() - 1024) * RS_TO_RADIANS;
+        const cosYaw = Math.abs(Math.cos(yaw));
+        const sinYaw = Math.abs(Math.sin(yaw));
+
+        // The rotated rectangle's axis-aligned bounding box dimensions
+        const halfWorldSpanX = baseHalfWorldSpanX * cosYaw + baseHalfWorldSpanY * sinYaw;
+        const halfWorldSpanY = baseHalfWorldSpanX * sinYaw + baseHalfWorldSpanY * cosYaw;
 
         const camX = camPos[0];
         const camZ = camPos[2];
@@ -218,8 +230,10 @@ export class GridRenderer2D {
             }
         }
 
-        const maxWidthInCells = Math.floor(halfWorldSpanX) * 2;
-        const maxHeightInCells = Math.floor(halfWorldSpanY) * 2;
+        // Use base (non-rotated) spans for max grid size since this represents
+        // the logical grid dimensions, not the expanded drawing area
+        const maxWidthInCells = Math.floor(baseHalfWorldSpanX) * 2;
+        const maxHeightInCells = Math.floor(baseHalfWorldSpanY) * 2;
         if (
             maxWidthInCells !== this.maxGridSize.maxWidthInCells ||
             maxHeightInCells !== this.maxGridSize.maxHeightInCells
