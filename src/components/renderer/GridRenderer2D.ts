@@ -37,6 +37,13 @@ type MaxGridSizeCallback = (gridSizeUpdate: GridSizeUpdate) => void;
 
 export const MINIMUM_GRID_SIZE: number = 4;
 
+const GRID_SETTINGS_STORAGE_KEY = "osrs-battlemap-grid-settings";
+
+type PersistedGridSettings = Pick<
+    GridSettings,
+    "enabled" | "widthPx" | "color" | "dashedLine" | "dashLengthPx" | "gapLengthPx"
+>;
+
 export class GridRenderer2D {
     private settings: GridSettings = {
         enabled: true,
@@ -70,11 +77,48 @@ export class GridRenderer2D {
     // Static vector/matrix for temporary calculations
     private static tempVec4: vec4 = vec4.create();
 
-    constructor() {}
+    constructor() {
+        this.loadSettingsFromStorage();
+    }
+
+    private loadSettingsFromStorage(): void {
+        try {
+            if (typeof localStorage === "undefined") {
+                return;
+            }
+            const stored = localStorage.getItem(GRID_SETTINGS_STORAGE_KEY);
+            if (stored) {
+                const parsed: PersistedGridSettings = JSON.parse(stored);
+                this.settings = { ...this.settings, ...parsed };
+            }
+        } catch {
+            // Ignore errors (localStorage unavailable, invalid JSON, etc.)
+        }
+    }
+
+    private saveSettingsToStorage(): void {
+        try {
+            if (typeof localStorage === "undefined") {
+                return;
+            }
+            const toSave: PersistedGridSettings = {
+                enabled: this.settings.enabled,
+                widthPx: this.settings.widthPx,
+                color: this.settings.color,
+                dashedLine: this.settings.dashedLine,
+                dashLengthPx: this.settings.dashLengthPx,
+                gapLengthPx: this.settings.gapLengthPx,
+            };
+            localStorage.setItem(GRID_SETTINGS_STORAGE_KEY, JSON.stringify(toSave));
+        } catch {
+            // Ignore errors (localStorage unavailable, quota exceeded, etc.)
+        }
+    }
 
     setSettings(newSettings: Partial<GridSettings>): void {
         const oldSettings = this.settings;
         this.settings = { ...this.settings, ...newSettings };
+        this.saveSettingsToStorage();
 
         if (!oldSettings.automaticGridSize && newSettings.automaticGridSize) {
             this.settings.widthInCells = this.maxGridSize.maxWidthInCells;
