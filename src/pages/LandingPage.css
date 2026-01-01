@@ -1,0 +1,46 @@
+.landing-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-color: #1a1a1a;
+}
+
+.landing-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.landing-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 3rem;
+    color: #ff981f;
+    text-shadow:
+        2px 2px 0 #000,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000;
+    margin: 0;
+    text-align: center;
+}
+
+.landing-button {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.25rem;
+    color: #ff981f;
+    text-decoration: none;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.landing-button:hover {
+    transform: scale(1.05);
+    color: #ffb347;
+}
+
+.landing-button:active {
+    transform: scale(0.98);
+}

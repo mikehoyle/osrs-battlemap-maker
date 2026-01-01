@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import "./index.css";
-import MapViewerApp from "./mapviewer/MapViewerApp";
+import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { Bzip2 } from "./rs/compression/Bzip2";
 import { Gzip } from "./rs/compression/Gzip";
@@ -23,7 +23,7 @@ const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement)
 root.render(
     // <React.StrictMode>
     <BrowserRouter>
-        <MapViewerApp />
+        <App />
     </BrowserRouter>,
     // </React.StrictMode>,
 );
