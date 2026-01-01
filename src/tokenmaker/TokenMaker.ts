@@ -55,6 +55,7 @@ export class TokenMaker {
     exportResolution: ExportResolution = 128;
     borderColor: string = "#ff981f";
     borderWidth: number = 4;
+    hdEnabled: boolean = false;
 
     // Event callbacks
     onStateChange?: () => void;
@@ -232,6 +233,11 @@ export class TokenMaker {
 
     setBorderWidth(width: number): void {
         this.borderWidth = Math.max(1, Math.min(width, 16));
+        this.onStateChange?.();
+    }
+
+    setHdEnabled(enabled: boolean): void {
+        this.hdEnabled = enabled;
         this.onStateChange?.();
     }
 

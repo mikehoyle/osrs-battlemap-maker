@@ -55,6 +55,31 @@
     text-align: right;
 }
 
+.hd-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.hd-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #ff981f;
+    cursor: pointer;
+}
+
+.hd-toggle-label {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+
+.hd-toggle:hover .hd-toggle-label {
+    color: #fff;
+}
+
 .export-button-row {
     margin-top: 0.5rem;
 }

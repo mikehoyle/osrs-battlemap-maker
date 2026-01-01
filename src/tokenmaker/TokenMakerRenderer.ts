@@ -11,6 +11,8 @@ import { Model } from "../rs/model/Model";
 import { TokenMaker } from "./TokenMaker";
 import tokenVertShader from "./shaders/token.vert.glsl";
 import tokenFragShader from "./shaders/token.frag.glsl";
+import tokenHdVertShader from "./shaders/token-hd.vert.glsl";
+import tokenHdFragShader from "./shaders/token-hd.frag.glsl";
 
 const TEXTURE_SIZE = 128;
 const MAX_TEXTURES = 512;
@@ -23,6 +25,7 @@ export class TokenMakerRenderer {
     gl!: WebGL2RenderingContext;
 
     program?: Program;
+    hdProgram?: Program;
     textureArray?: Texture;
 
     // Cached model data
@@ -59,8 +62,9 @@ export class TokenMakerRenderer {
         });
         this.gl = this.app.gl as WebGL2RenderingContext;
 
-        // Create shader program
+        // Create shader programs
         this.program = this.app.createProgram(tokenVertShader, tokenFragShader);
+        this.hdProgram = this.app.createProgram(tokenHdVertShader, tokenHdFragShader);
 
         // Initialize texture array
         await this.initTextures();
@@ -407,7 +411,7 @@ export class TokenMakerRenderer {
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        if (this.indexCount === 0 || !this.program || !this.vao || !this.textureArray) {
+        if (this.indexCount === 0 || !this.program || !this.hdProgram || !this.vao || !this.textureArray) {
             return;
         }
 
@@ -416,20 +420,37 @@ export class TokenMakerRenderer {
         // Disable culling for now - top-down view might see "back" faces
         gl.disable(gl.CULL_FACE);
 
-        // Use program
-        gl.useProgram(this.program.program);
+        // Choose program based on HD setting
+        const activeProgram = tokenMaker.hdEnabled ? this.hdProgram : this.program;
+        gl.useProgram(activeProgram.program);
 
-        // Set uniforms
-        const projLoc = gl.getUniformLocation(this.program.program, "u_projectionMatrix");
-        const viewLoc = gl.getUniformLocation(this.program.program, "u_viewMatrix");
-        const brightnessLoc = gl.getUniformLocation(this.program.program, "u_brightness");
-        const colorBandingLoc = gl.getUniformLocation(this.program.program, "u_colorBanding");
-        const texturesLoc = gl.getUniformLocation(this.program.program, "u_textures");
+        // Set common uniforms
+        const projLoc = gl.getUniformLocation(activeProgram.program, "u_projectionMatrix");
+        const viewLoc = gl.getUniformLocation(activeProgram.program, "u_viewMatrix");
+        const brightnessLoc = gl.getUniformLocation(activeProgram.program, "u_brightness");
+        const colorBandingLoc = gl.getUniformLocation(activeProgram.program, "u_colorBanding");
+        const texturesLoc = gl.getUniformLocation(activeProgram.program, "u_textures");
 
         gl.uniformMatrix4fv(projLoc, false, this.projectionMatrix);
         gl.uniformMatrix4fv(viewLoc, false, this.viewMatrix);
         gl.uniform1f(brightnessLoc, 1.0);
         gl.uniform1f(colorBandingLoc, 255.0);
+
+        // Set HD-specific uniforms
+        if (tokenMaker.hdEnabled) {
+            const lightDirLoc = gl.getUniformLocation(activeProgram.program, "u_lightDirection");
+            const ambientLoc = gl.getUniformLocation(activeProgram.program, "u_ambientStrength");
+            const diffuseLoc = gl.getUniformLocation(activeProgram.program, "u_diffuseStrength");
+            const specularLoc = gl.getUniformLocation(activeProgram.program, "u_specularStrength");
+            const shininessLoc = gl.getUniformLocation(activeProgram.program, "u_shininess");
+
+            // Light coming from top-left-front direction
+            gl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            gl.uniform1f(ambientLoc, 0.35);
+            gl.uniform1f(diffuseLoc, 0.6);
+            gl.uniform1f(specularLoc, 0.25);
+            gl.uniform1f(shininessLoc, 16.0);
+        }
 
         // Bind texture array
         gl.activeTexture(gl.TEXTURE0);
@@ -458,8 +479,10 @@ export class TokenMakerRenderer {
         });
         const offscreenGl = offscreenApp.gl as WebGL2RenderingContext;
 
-        // Create program for offscreen rendering
-        const offscreenProgram = offscreenApp.createProgram(tokenVertShader, tokenFragShader);
+        // Create program for offscreen rendering (choose based on HD setting)
+        const offscreenProgram = tokenMaker.hdEnabled
+            ? offscreenApp.createProgram(tokenHdVertShader, tokenHdFragShader)
+            : offscreenApp.createProgram(tokenVertShader, tokenFragShader);
 
         // Get model
         const model = tokenMaker.getModel();
@@ -594,6 +617,21 @@ export class TokenMakerRenderer {
         offscreenGl.uniformMatrix4fv(viewLoc, false, viewMatrix);
         offscreenGl.uniform1f(brightnessLoc, 1.0);
         offscreenGl.uniform1f(colorBandingLoc, 255.0);
+
+        // Set HD-specific uniforms
+        if (tokenMaker.hdEnabled) {
+            const lightDirLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_lightDirection");
+            const ambientLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_ambientStrength");
+            const diffuseLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_diffuseStrength");
+            const specularLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_specularStrength");
+            const shininessLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_shininess");
+
+            offscreenGl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            offscreenGl.uniform1f(ambientLoc, 0.35);
+            offscreenGl.uniform1f(diffuseLoc, 0.6);
+            offscreenGl.uniform1f(specularLoc, 0.25);
+            offscreenGl.uniform1f(shininessLoc, 16.0);
+        }
 
         // Bind texture array
         offscreenGl.activeTexture(offscreenGl.TEXTURE0);

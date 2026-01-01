@@ -6,9 +6,11 @@ interface ExportPanelProps {
     resolution: ExportResolution;
     borderColor: string;
     borderWidth: number;
+    hdEnabled: boolean;
     onResolutionChange: (resolution: ExportResolution) => void;
     onBorderColorChange: (color: string) => void;
     onBorderWidthChange: (width: number) => void;
+    onHdChange: (enabled: boolean) => void;
     onExport: () => void;
     canExport: boolean;
 }
@@ -29,9 +31,11 @@ export function ExportPanel({
     resolution,
     borderColor,
     borderWidth,
+    hdEnabled,
     onResolutionChange,
     onBorderColorChange,
     onBorderWidthChange,
+    onHdChange,
     onExport,
     canExport,
 }: ExportPanelProps): JSX.Element {
@@ -66,6 +70,20 @@ export function ExportPanel({
                         </button>
                     ))}
                 </div>
+            </div>
+
+            <div className="control-row">
+                <label className="control-label">HD</label>
+                <label className="hd-toggle">
+                    <input
+                        type="checkbox"
+                        checked={hdEnabled}
+                        onChange={(e) => onHdChange(e.target.checked)}
+                    />
+                    <span className="hd-toggle-label">
+                        Enable HD lighting
+                    </span>
+                </label>
             </div>
 
             <div className="control-row">

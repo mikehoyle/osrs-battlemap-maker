@@ -152,9 +152,11 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         resolution={tokenMaker.exportResolution}
                         borderColor={tokenMaker.borderColor}
                         borderWidth={tokenMaker.borderWidth}
+                        hdEnabled={tokenMaker.hdEnabled}
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
                         onBorderColorChange={(c) => tokenMaker.setBorderColor(c)}
                         onBorderWidthChange={(w) => tokenMaker.setBorderWidth(w)}
+                        onHdChange={(h) => tokenMaker.setHdEnabled(h)}
                         onExport={handleExport}
                         canExport={tokenMaker.selectedNpcId !== null}
                     />
