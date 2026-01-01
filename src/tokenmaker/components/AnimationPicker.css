@@ -1,0 +1,25 @@
+.animation-picker {
+    display: flex;
+    flex-direction: column;
+}
+
+.frame-counter {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.75rem;
+    color: #999;
+    min-width: 50px;
+    text-align: right;
+}
+
+.animation-controls {
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.animation-controls .control-button {
+    min-width: 40px;
+}
+
+.play-button {
+    min-width: 60px !important;
+}

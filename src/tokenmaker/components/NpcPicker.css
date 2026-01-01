@@ -1,0 +1,91 @@
+.npc-picker {
+    display: flex;
+    flex-direction: column;
+    max-height: 300px;
+}
+
+.npc-search {
+    width: 100%;
+}
+
+.selected-npc {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 152, 31, 0.1);
+    border: 1px solid #ff981f;
+    border-radius: 2px;
+    margin-bottom: 0.5rem;
+}
+
+.selected-npc-name {
+    font-family: "OSRS Bold", sans-serif;
+    color: #ff981f;
+    flex: 1;
+}
+
+.selected-npc-id,
+.selected-npc-combat {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.npc-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #3a3a3a;
+    border-radius: 2px;
+    background-color: #1a1a1a;
+}
+
+.npc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    cursor: pointer;
+    border-bottom: 1px solid #2a2a2a;
+    transition: background-color 0.1s ease;
+}
+
+.npc-item:last-child {
+    border-bottom: none;
+}
+
+.npc-item:hover {
+    background-color: #2a2a2a;
+}
+
+.npc-item.selected {
+    background-color: rgba(255, 152, 31, 0.15);
+}
+
+.npc-name {
+    font-family: "OSRS Small", sans-serif;
+    color: #fff;
+    flex: 1;
+    font-size: 0.875rem;
+}
+
+.npc-id {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.npc-combat {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.75rem;
+    color: #c9aa71;
+}
+
+.npc-item-info {
+    padding: 0.5rem;
+    text-align: center;
+    color: #666;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.75rem;
+    font-style: italic;
+}

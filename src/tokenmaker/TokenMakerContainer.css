@@ -1,0 +1,236 @@
+.token-maker-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.token-maker-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.back-button {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1rem;
+    color: #ff981f;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.back-button:hover {
+    transform: scale(1.05);
+    color: #ffb347;
+}
+
+.token-maker-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.5rem;
+    color: #ff981f;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000;
+    margin: 0;
+}
+
+.token-maker-content {
+    display: flex;
+    flex: 1;
+    gap: 1rem;
+    min-height: 0;
+}
+
+.token-maker-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.preview-canvas-container {
+    width: 300px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2a2a2a;
+}
+
+.preview-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.preview-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    color: #ccc;
+    font-size: 0.875rem;
+}
+
+.token-maker-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    overflow-y: auto;
+}
+
+/* Control panel shared styles */
+.control-panel {
+    padding: 1rem;
+}
+
+.control-panel-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1rem;
+    color: #ff981f;
+    margin: 0 0 0.75rem 0;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000;
+}
+
+.control-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.control-row:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    font-family: "OSRS Small", sans-serif;
+    color: #ccc;
+    font-size: 0.875rem;
+    min-width: 80px;
+}
+
+/* Input styles */
+.control-input {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #3a3a3a;
+    background-color: #1a1a1a;
+    color: #fff;
+    border-radius: 2px;
+    flex: 1;
+}
+
+.control-input:focus {
+    outline: none;
+    border-color: #ff981f;
+}
+
+.control-select {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.875rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #3a3a3a;
+    background-color: #1a1a1a;
+    color: #fff;
+    border-radius: 2px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.control-select:focus {
+    outline: none;
+    border-color: #ff981f;
+}
+
+.control-button {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: #ff981f;
+    transition: transform 0.1s ease;
+}
+
+.control-button:hover:not(:disabled) {
+    transform: scale(1.02);
+    color: #ffb347;
+}
+
+.control-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.control-button.primary {
+    background-color: #3a5a3a;
+}
+
+/* Slider styles */
+.control-slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3a3a3a;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #ff981f;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.control-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #ff981f;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Checkbox styles */
+.control-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.control-checkbox input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Button group */
+.button-group {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.button-group .control-button {
+    flex: 1;
+}
+
+.button-group .control-button.active {
+    background-color: #5a3a1a;
+}
