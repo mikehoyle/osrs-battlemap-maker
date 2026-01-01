@@ -284,6 +284,8 @@ export class GridRenderer2D {
                 this.settings.dashLengthPx * devicePixelRatio,
                 this.settings.gapLengthPx * devicePixelRatio,
             ]);
+        } else {
+            ctx.setLineDash([]);
         }
         ctx.moveTo(p1[0], p1[1]);
         ctx.lineTo(p2[0], p2[1]);
