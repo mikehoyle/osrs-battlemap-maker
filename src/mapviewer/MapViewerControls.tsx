@@ -51,17 +51,12 @@ export const MapViewerControls = memo(
 
         const [isExportingBattlemap, setExportingBattlemap] = useState(false);
 
-        // TODO: update control instructions
         const positionControls = isTouchDevice
-            ? "Left joystick, Drag up and down."
-            : "WASD,\nR or E (up),\nF or C (down),\nUse SHIFT to go faster, or TAB to go slower.";
-        const directionControls = isTouchDevice
-            ? "Right joystick."
-            : "Arrow Keys or Click and Drag. Double click for pointerlock.";
+            ? "Joystick, Drag up and down." // TODO: confirm this is actually right for mobile
+            : "WASD or Arrow Keys\nUse SHIFT to go faster, or TAB to go slower.";
 
         const controlsSchema: Schema = {
             Position: { value: positionControls, editable: false },
-            Direction: { value: directionControls, editable: false },
         };
 
         const [gridSize, setGridSize] = useState({
