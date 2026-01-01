@@ -110,12 +110,14 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const inputManager = this.mapViewer.inputManager;
         const camera = this.mapViewer.camera;
 
-        // mouse/touch controls
+        // mouse/touch controls - drag to pan
         const deltaMouseX = inputManager.getDeltaMouseX();
         const deltaMouseY = inputManager.getDeltaMouseY();
 
         if (deltaMouseX !== 0 || deltaMouseY !== 0) {
-            camera.move(0, clamp(-deltaMouseY, -100, 100) * 0.004, 0);
+            // Pan camera - scale inversely with zoom so it feels like dragging the map
+            const panScale = 4 / camera.orthoZoom;
+            camera.move(-deltaMouseX * panScale, 0, deltaMouseY * panScale);
         }
 
         const deltaScroll = inputManager.getDeltaMouseScroll();

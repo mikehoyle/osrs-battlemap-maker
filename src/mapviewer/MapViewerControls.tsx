@@ -53,7 +53,7 @@ export const MapViewerControls = memo(
 
         const positionControls = isTouchDevice
             ? "Joystick, Drag up and down." // TODO: confirm this is actually right for mobile
-            : "WASD or Arrow Keys\nUse SHIFT to go faster, or TAB to go slower.";
+            : "WASD or Arrow Keys\nor Click-and-drag.\nUse SHIFT to go faster, or TAB to go slower.";
 
         const controlsSchema: Schema = {
             Position: { value: positionControls, editable: false },
