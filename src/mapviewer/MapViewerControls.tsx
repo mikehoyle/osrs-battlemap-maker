@@ -111,6 +111,14 @@ export const MapViewerControls = memo(
                     },
                     order: 10,
                 },
+                "Rotate Left": button(() => {
+                    const currentYaw = mapViewer.camera.getYaw();
+                    mapViewer.camera.setYaw((currentYaw + 512) & 2047);
+                }),
+                "Rotate Right": button(() => {
+                    const currentYaw = mapViewer.camera.getYaw();
+                    mapViewer.camera.setYaw((currentYaw - 512 + 2048) & 2047);
+                }),
                 Controls: folder(controlsSchema, { collapsed: true, order: 999 }),
             }),
             { collapsed: false, order: 0 },
