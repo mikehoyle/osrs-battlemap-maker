@@ -56,6 +56,7 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         this.handleMouseInput();
         this.handleControllerInput(deltaTime);
         this.handleJoystickInput(deltaTime);
+        this.mapViewer.camera.updateAnimation(deltaTime);
     }
 
     handleKeyInput(deltaTime: number) {

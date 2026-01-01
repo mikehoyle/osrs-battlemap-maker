@@ -44,6 +44,13 @@ export class Camera {
     updatedPosition: boolean = false;
     updatedLastFrame: boolean = false;
 
+    // Yaw animation state
+    private animatingYaw: boolean = false;
+    private yawAnimationStart: number = 0;
+    private yawAnimationTarget: number = 0;
+    private yawAnimationProgress: number = 0;
+    private readonly YAW_ANIMATION_DURATION: number = 200; // ms
+
     constructor(x: number, y: number, z: number, pitch: number, yaw: number) {
         this.floatPosition = vec3.fromValues(x, y, z);
         this.pitch = pitch;
@@ -127,11 +134,51 @@ export class Camera {
     }
 
     getYaw(): number {
+        if (this.animatingYaw) {
+            return this.yawAnimationTarget & 2047;
+        }
         return this.yaw & 2047;
     }
 
     setYaw(yaw: number): void {
         this.yaw = yaw;
+        this.updated = true;
+    }
+
+    animateToYaw(targetYaw: number): void {
+        this.animatingYaw = true;
+        this.yawAnimationStart = this.yaw;
+        this.yawAnimationTarget = targetYaw;
+        this.yawAnimationProgress = 0;
+    }
+
+    updateAnimation(deltaTime: number): void {
+        if (!this.animatingYaw) {
+            return;
+        }
+
+        this.yawAnimationProgress += deltaTime / this.YAW_ANIMATION_DURATION;
+
+        if (this.yawAnimationProgress >= 1) {
+            this.yaw = this.yawAnimationTarget & 2047;
+            this.animatingYaw = false;
+            this.updated = true;
+            return;
+        }
+
+        // Ease-out cubic for smooth deceleration
+        const t = this.yawAnimationProgress;
+        const eased = 1 - Math.pow(1 - t, 3);
+
+        // Calculate shortest path around the circle
+        let delta = this.yawAnimationTarget - this.yawAnimationStart;
+        if (delta > 1024) {
+            delta -= 2048;
+        } else if (delta < -1024) {
+            delta += 2048;
+        }
+
+        this.yaw = (this.yawAnimationStart + delta * eased) & 2047;
         this.updated = true;
     }
 
