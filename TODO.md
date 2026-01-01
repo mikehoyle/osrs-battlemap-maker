@@ -1,8 +1,6 @@
 # Main stuff
 
--   Restrict width options (and other ints?)
 -   Limit pitch/yaw -- no pitch changes, yaw only in 90deg increments
--   Strip out extraneous options (need to identify all options)
 -   remove perspective, pitch, yaw, maybe camera X, (maybe more?) from url query params (MapViewer)
 -   Add grid options to query params (maybe local storage too?)
 -   Remove perspective camera setting (and camera settings entirely probably)
@@ -25,3 +23,5 @@
 
 -   Overlay grid
 -   Dashed lines
+-   (I think done) Restrict width options (and other ints?)
+-   Strip out extraneous options (need to identify all options)

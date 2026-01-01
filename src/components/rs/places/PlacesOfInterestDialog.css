@@ -1,0 +1,74 @@
+.places-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1337;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.places-modal {
+    position: relative;
+    background-color: #3e3529;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: auto;
+    outline: none;
+    padding: 20px;
+}
+
+.places-close-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-image: url(../worldmap/close-button.png);
+    width: 24px;
+    height: 23px;
+    margin: 6px;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.places-close-button:hover {
+    background-image: url(../worldmap/close-button-hover.png);
+}
+
+.places-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.places-title {
+    margin: 0;
+    font-family: "OSRS Small", serif;
+    font-size: 24px;
+    color: #ff981f;
+    text-align: center;
+}
+
+.places-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.places-item {
+    padding: 12px 16px;
+    background-color: #2b2620;
+    border: 2px solid #5a4d3a;
+    cursor: pointer;
+    font-family: "OSRS Small", serif;
+    font-size: 18px;
+    color: #ff981f;
+    transition: background-color 0.15s ease;
+}
+
+.places-item:hover {
+    background-color: #4a4035;
+    border-color: #7a6d5a;
+}

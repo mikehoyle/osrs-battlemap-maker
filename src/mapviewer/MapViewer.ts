@@ -107,26 +107,17 @@ export class MapViewer {
 
     getSearchParams(): URLSearchParamsInit {
         const cx = this.camera.getPosX().toFixed(2).toString();
-        const cy = -this.camera.getPosY().toFixed(2).toString();
         const cz = this.camera.getPosZ().toFixed(2).toString();
 
         const yaw = this.camera.yaw & 2047;
-
-        const p = (this.camera.pitch | 0).toString();
         const y = yaw.toString();
 
         const params: any = {
             cx,
-            cy,
             cz,
-            p,
             y,
+            z: this.camera.orthoZoom.toString(),
         };
-
-        if (this.camera.projectionType === ProjectionType.ORTHO) {
-            params["pt"] = "o";
-            params["z"] = this.camera.orthoZoom.toString();
-        }
 
         if (this.loadedCache.info.name !== this.cacheList.latest.name) {
             params["cache"] = this.loadedCache.info.name;
@@ -142,35 +133,21 @@ export class MapViewer {
         const cy = searchParams.get("cy");
         const cz = searchParams.get("cz");
 
-        const pitch = searchParams.get("p");
         const yaw = searchParams.get("y");
-
-        const v = searchParams.get("v");
-
-        if (searchParams.get("pt") === "o") {
-            this.camera.projectionType = ProjectionType.ORTHO;
-        }
 
         const zoom = searchParams.get("z");
         if (zoom) {
             this.camera.orthoZoom = parseInt(zoom);
         }
 
-        if (cx && cy && cz) {
-            const pos = vec3.fromValues(parseFloat(cx), -parseFloat(cy), parseFloat(cz));
+        if (cx && cz) {
+            // Use cy from URL if present (backwards compat), otherwise keep default Y
+            const posY = cy ? -parseFloat(cy) : this.camera.pos[1];
+            const pos = vec3.fromValues(parseFloat(cx), posY, parseFloat(cz));
             this.camera.pos = pos;
-        }
-        if (pitch) {
-            this.camera.pitch = parseInt(pitch);
-            if (!v) {
-                this.camera.pitch = -this.camera.pitch;
-            }
         }
         if (yaw) {
             this.camera.yaw = parseInt(yaw);
-            if (!v) {
-                this.camera.yaw = 2048 - this.camera.yaw;
-            }
         }
     }
 
