@@ -80,6 +80,26 @@
     color: #fff;
 }
 
+.section-title {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #4a4a4a;
+}
+
+.control-select {
+    flex: 1;
+    padding: 0.5rem;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 0.85rem;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.control-select option {
+    background-color: #1a1a1a;
+    color: #ccc;
+}
+
 .export-button-row {
     margin-top: 0.5rem;
 }

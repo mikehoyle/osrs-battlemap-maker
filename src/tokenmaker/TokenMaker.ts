@@ -27,6 +27,31 @@ export type AnimationOption = {
 
 export type ExportResolution = 64 | 128 | 256;
 
+export enum TextureFilterMode {
+    DISABLED,
+    BILINEAR,
+    TRILINEAR,
+    ANISOTROPIC_2X,
+    ANISOTROPIC_4X,
+    ANISOTROPIC_8X,
+    ANISOTROPIC_16X,
+}
+
+export function getMaxAnisotropy(mode: TextureFilterMode): number {
+    switch (mode) {
+        case TextureFilterMode.ANISOTROPIC_2X:
+            return 2;
+        case TextureFilterMode.ANISOTROPIC_4X:
+            return 4;
+        case TextureFilterMode.ANISOTROPIC_8X:
+            return 8;
+        case TextureFilterMode.ANISOTROPIC_16X:
+            return 16;
+        default:
+            return 1;
+    }
+}
+
 export class TokenMaker {
     // Cache
     cacheSystem!: CacheSystem;
@@ -56,6 +81,11 @@ export class TokenMaker {
     borderColor: string = "#ff981f";
     borderWidth: number = 4;
     hdEnabled: boolean = false;
+
+    // Renderer settings
+    brightness: number = 1; // 0-4 scale (higher = darker)
+    textureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
+    smoothModel: boolean = false;
 
     // Event callbacks
     onStateChange?: () => void;
@@ -238,6 +268,21 @@ export class TokenMaker {
 
     setHdEnabled(enabled: boolean): void {
         this.hdEnabled = enabled;
+        this.onStateChange?.();
+    }
+
+    setBrightness(value: number): void {
+        this.brightness = Math.max(0, Math.min(value, 4));
+        this.onStateChange?.();
+    }
+
+    setTextureFilterMode(mode: TextureFilterMode): void {
+        this.textureFilterMode = mode;
+        this.onStateChange?.();
+    }
+
+    setSmoothModel(enabled: boolean): void {
+        this.smoothModel = enabled;
         this.onStateChange?.();
     }
 

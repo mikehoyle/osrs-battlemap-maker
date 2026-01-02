@@ -5,13 +5,16 @@ precision highp float;
 uniform mat4 u_projectionMatrix;
 uniform mat4 u_viewMatrix;
 uniform float u_brightness;
+uniform bool u_smoothShading;
 
 layout(location = 0) in uvec3 a_vertex;
+layout(location = 1) in uint a_normal;
 
 out vec4 v_color;
 out vec2 v_texCoord;
 flat out uint v_texId;
 out vec3 v_worldPos;
+out vec3 v_normal;
 
 // Branchless logic helpers
 float when_eq(float x, float y) {
@@ -101,6 +104,23 @@ Vertex decodeVertex(uint v0, uint v1, uint v2, float brightness) {
     return Vertex(vec3(x, y, z), color, vec2(u, v), uint(textureId), priority);
 }
 
+// Decode packed normal from uint32
+// Format: nx (10 bits signed) | ny (10 bits signed) | nz (10 bits signed) | 2 unused
+vec3 decodeNormal(uint packed) {
+    // Extract 10-bit signed components
+    int nx = int((packed >> 22u) & 0x3FFu);
+    int ny = int((packed >> 12u) & 0x3FFu);
+    int nz = int((packed >> 2u) & 0x3FFu);
+
+    // Convert from unsigned 10-bit to signed (-511 to 511)
+    if (nx >= 512) nx -= 1024;
+    if (ny >= 512) ny -= 1024;
+    if (nz >= 512) nz -= 1024;
+
+    // Normalize to -1 to 1 range
+    return normalize(vec3(float(nx), float(ny), float(nz)) / 511.0);
+}
+
 void main() {
     Vertex vertex = decodeVertex(a_vertex.x, a_vertex.y, a_vertex.z, u_brightness);
 
@@ -111,6 +131,13 @@ void main() {
     // Transform vertex position from model space to world space
     vec3 localPos = vertex.pos / 128.0;
     v_worldPos = localPos;
+
+    // Decode and output normal for smooth shading
+    if (u_smoothShading) {
+        v_normal = decodeNormal(a_normal);
+    } else {
+        v_normal = vec3(0.0, 1.0, 0.0); // Default up normal (will be overridden in frag)
+    }
 
     gl_Position = u_projectionMatrix * u_viewMatrix * vec4(localPos, 1.0);
     gl_Position.z += float(vertex.priority) * 0.0007;

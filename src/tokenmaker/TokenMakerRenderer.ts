@@ -8,7 +8,7 @@ import {
 
 import { createTextureArray } from "../picogl/PicoTexture";
 import { Model } from "../rs/model/Model";
-import { TokenMaker } from "./TokenMaker";
+import { TokenMaker, TextureFilterMode, getMaxAnisotropy } from "./TokenMaker";
 import tokenVertShader from "./shaders/token.vert.glsl";
 import tokenFragShader from "./shaders/token.frag.glsl";
 import tokenHdVertShader from "./shaders/token-hd.vert.glsl";
@@ -35,6 +35,7 @@ export class TokenMakerRenderer {
 
     vao?: WebGLVertexArrayObject;
     vertexBuffer?: WebGLBuffer;
+    normalBuffer?: WebGLBuffer;
     indexBuffer?: WebGLBuffer;
     indexCount: number = 0;
 
@@ -49,6 +50,10 @@ export class TokenMakerRenderer {
     // Texture mapping
     textureIdIndexMap: Map<number, number> = new Map();
     loadedTextureIds: Set<number> = new Set();
+
+    // Current settings (for change detection)
+    currentTextureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
+    currentSmoothModel: boolean = false;
 
     constructor(canvas: HTMLCanvasElement, tokenMaker: TokenMaker) {
         this.canvas = canvas;
@@ -113,8 +118,6 @@ export class TokenMakerRenderer {
             MAX_TEXTURES,
             {
                 internalFormat: PicoGL.RGBA8,
-                minFilter: PicoGL.LINEAR_MIPMAP_LINEAR,
-                magFilter: PicoGL.LINEAR,
                 wrapS: PicoGL.CLAMP_TO_EDGE,
                 wrapT: PicoGL.CLAMP_TO_EDGE,
             },
@@ -123,6 +126,67 @@ export class TokenMakerRenderer {
         // Generate mipmaps
         this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, this.textureArray.texture);
         this.gl.generateMipmap(this.gl.TEXTURE_2D_ARRAY);
+
+        // Apply initial texture filtering
+        this.updateTextureFiltering();
+    }
+
+    updateTextureFiltering(): void {
+        if (!this.textureArray) {
+            return;
+        }
+
+        const mode = this.tokenMaker.textureFilterMode;
+        this.currentTextureFilterMode = mode;
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, this.textureArray.texture);
+
+        if (mode === TextureFilterMode.DISABLED) {
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MIN_FILTER,
+                this.gl.NEAREST,
+            );
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MAG_FILTER,
+                this.gl.NEAREST,
+            );
+        } else if (mode === TextureFilterMode.BILINEAR) {
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MIN_FILTER,
+                this.gl.LINEAR_MIPMAP_NEAREST,
+            );
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MAG_FILTER,
+                this.gl.LINEAR,
+            );
+        } else {
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MIN_FILTER,
+                this.gl.LINEAR_MIPMAP_LINEAR,
+            );
+            this.gl.texParameteri(
+                this.gl.TEXTURE_2D_ARRAY,
+                this.gl.TEXTURE_MAG_FILTER,
+                this.gl.LINEAR,
+            );
+        }
+
+        // Apply anisotropic filtering if supported
+        const ext = this.gl.getExtension("EXT_texture_filter_anisotropic");
+        if (ext) {
+            const maxAniso = this.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            const anisotropy = Math.min(getMaxAnisotropy(mode), maxAniso);
+            this.gl.texParameterf(
+                this.gl.TEXTURE_2D_ARRAY,
+                ext.TEXTURE_MAX_ANISOTROPY_EXT,
+                anisotropy,
+            );
+        }
     }
 
     updateCamera(modelSize?: number): void {
@@ -169,6 +233,8 @@ export class TokenMakerRenderer {
 
     buildModelBuffers(model: Model): void {
         const gl = this.gl;
+        const smoothModel = this.tokenMaker.smoothModel;
+        this.currentSmoothModel = smoothModel;
 
         // Get model faces
         const faces = this.getModelFaces(model);
@@ -179,6 +245,7 @@ export class TokenMakerRenderer {
 
         // Build vertex data
         const vertexData: number[] = [];
+        const normalData: number[] = [];
         const indices: number[] = [];
 
         const verticesX = model.verticesX;
@@ -190,6 +257,55 @@ export class TokenMakerRenderer {
         const facesC = model.indices3;
 
         const modelTexCoords = model.uvs;
+
+        // For smooth shading, first compute vertex normals
+        // vertexNormals[vertexIndex] = accumulated normal for that vertex
+        const vertexNormals: Map<number, { x: number; y: number; z: number }> = new Map();
+
+        if (smoothModel) {
+            // First pass: compute and accumulate face normals to vertices
+            for (const face of faces) {
+                const index = face.index;
+                const fa = facesA[index];
+                const fb = facesB[index];
+                const fc = facesC[index];
+
+                // Get vertex positions
+                const ax = verticesX[fa], ay = verticesY[fa], az = verticesZ[fa];
+                const bx = verticesX[fb], by = verticesY[fb], bz = verticesZ[fb];
+                const cx = verticesX[fc], cy = verticesY[fc], cz = verticesZ[fc];
+
+                // Compute face normal using cross product
+                const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+                const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+
+                const nx = e1y * e2z - e1z * e2y;
+                const ny = e1z * e2x - e1x * e2z;
+                const nz = e1x * e2y - e1y * e2x;
+
+                // Accumulate face normal to each vertex of the face
+                for (const vertIdx of [fa, fb, fc]) {
+                    const existing = vertexNormals.get(vertIdx);
+                    if (existing) {
+                        existing.x += nx;
+                        existing.y += ny;
+                        existing.z += nz;
+                    } else {
+                        vertexNormals.set(vertIdx, { x: nx, y: ny, z: nz });
+                    }
+                }
+            }
+
+            // Normalize accumulated normals
+            for (const [, normal] of vertexNormals) {
+                const len = Math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+                if (len > 0.0001) {
+                    normal.x /= len;
+                    normal.y /= len;
+                    normal.z /= len;
+                }
+            }
+        }
 
         for (const face of faces) {
             const index = face.index;
@@ -240,6 +356,40 @@ export class TokenMakerRenderer {
                 hslC, alpha, u2, v2, textureIndex, priority,
             ));
 
+            // Pack normals for each vertex
+            if (smoothModel) {
+                const nA = vertexNormals.get(fa) || { x: 0, y: 1, z: 0 };
+                const nB = vertexNormals.get(fb) || { x: 0, y: 1, z: 0 };
+                const nC = vertexNormals.get(fc) || { x: 0, y: 1, z: 0 };
+                normalData.push(this.packNormal(nA.x, nA.y, nA.z));
+                normalData.push(this.packNormal(nB.x, nB.y, nB.z));
+                normalData.push(this.packNormal(nC.x, nC.y, nC.z));
+            } else {
+                // For flat shading, compute face normal
+                const ax = verticesX[fa], ay = verticesY[fa], az = verticesZ[fa];
+                const bx = verticesX[fb], by = verticesY[fb], bz = verticesZ[fb];
+                const cx = verticesX[fc], cy = verticesY[fc], cz = verticesZ[fc];
+
+                const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+                const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+
+                let nx = e1y * e2z - e1z * e2y;
+                let ny = e1z * e2x - e1x * e2z;
+                let nz = e1x * e2y - e1y * e2x;
+
+                const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+                if (len > 0.0001) {
+                    nx /= len;
+                    ny /= len;
+                    nz /= len;
+                }
+
+                const packedNormal = this.packNormal(nx, ny, nz);
+                normalData.push(packedNormal);
+                normalData.push(packedNormal);
+                normalData.push(packedNormal);
+            }
+
             indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
         }
 
@@ -249,6 +399,9 @@ export class TokenMakerRenderer {
         }
         if (this.vertexBuffer) {
             gl.deleteBuffer(this.vertexBuffer);
+        }
+        if (this.normalBuffer) {
+            gl.deleteBuffer(this.normalBuffer);
         }
         if (this.indexBuffer) {
             gl.deleteBuffer(this.indexBuffer);
@@ -268,6 +421,16 @@ export class TokenMakerRenderer {
         gl.enableVertexAttribArray(0);
         gl.vertexAttribIPointer(0, 3, gl.UNSIGNED_INT, 12, 0);
 
+        // Create normal buffer
+        const normalArray = new Uint32Array(normalData);
+        this.normalBuffer = gl.createBuffer()!;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, normalArray, gl.STATIC_DRAW);
+
+        // Set up normal attribute (1 x uint32 per vertex)
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_INT, 4, 0);
+
         // Create index buffer
         this.indexBuffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
@@ -276,6 +439,26 @@ export class TokenMakerRenderer {
         gl.bindVertexArray(null);
 
         this.indexCount = indices.length;
+    }
+
+    // Pack a normalized normal into a uint32
+    // Format: nx (10 bits) | ny (10 bits) | nz (10 bits) | 2 unused
+    packNormal(nx: number, ny: number, nz: number): number {
+        // Convert from -1..1 to 0..1023 (10-bit unsigned with sign encoding)
+        // We use two's complement style: values 0-511 are positive, 512-1023 are negative
+        const packComponent = (v: number): number => {
+            const scaled = Math.round(v * 511);
+            if (scaled < 0) {
+                return (scaled + 1024) & 0x3FF; // Two's complement in 10 bits
+            }
+            return scaled & 0x3FF;
+        };
+
+        const nxPacked = packComponent(nx);
+        const nyPacked = packComponent(ny);
+        const nzPacked = packComponent(nz);
+
+        return (nxPacked << 22) | (nyPacked << 12) | (nzPacked << 2);
     }
 
     packVertex(
@@ -385,11 +568,17 @@ export class TokenMakerRenderer {
             }
         }
 
+        // Check if texture filtering changed
+        if (tokenMaker.textureFilterMode !== this.currentTextureFilterMode) {
+            this.updateTextureFiltering();
+        }
+
         // Check if we need to rebuild model buffers
         const needsRebuild =
             tokenMaker.selectedNpcId !== this.currentNpcId ||
             tokenMaker.selectedSeqId !== this.currentSeqId ||
-            tokenMaker.currentFrame !== this.currentFrame;
+            tokenMaker.currentFrame !== this.currentFrame ||
+            tokenMaker.smoothModel !== this.currentSmoothModel;
 
         if (needsRebuild) {
             const model = tokenMaker.getModel();
@@ -433,7 +622,9 @@ export class TokenMakerRenderer {
 
         gl.uniformMatrix4fv(projLoc, false, this.projectionMatrix);
         gl.uniformMatrix4fv(viewLoc, false, this.viewMatrix);
-        gl.uniform1f(brightnessLoc, 1.0);
+        // Convert brightness from 0-4 scale to internal format (higher value = darker)
+        const brightness = 1.0 - tokenMaker.brightness * 0.1;
+        gl.uniform1f(brightnessLoc, brightness);
         gl.uniform1f(colorBandingLoc, 255.0);
 
         // Set HD-specific uniforms
@@ -443,6 +634,7 @@ export class TokenMakerRenderer {
             const diffuseLoc = gl.getUniformLocation(activeProgram.program, "u_diffuseStrength");
             const specularLoc = gl.getUniformLocation(activeProgram.program, "u_specularStrength");
             const shininessLoc = gl.getUniformLocation(activeProgram.program, "u_shininess");
+            const smoothShadingLoc = gl.getUniformLocation(activeProgram.program, "u_smoothShading");
 
             // Light coming from top-left-front direction
             gl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
@@ -450,6 +642,7 @@ export class TokenMakerRenderer {
             gl.uniform1f(diffuseLoc, 0.6);
             gl.uniform1f(specularLoc, 0.25);
             gl.uniform1f(shininessLoc, 16.0);
+            gl.uniform1i(smoothShadingLoc, tokenMaker.smoothModel ? 1 : 0);
         }
 
         // Bind texture array
@@ -493,6 +686,7 @@ export class TokenMakerRenderer {
         if (faces.length === 0) return null;
 
         const vertexData: number[] = [];
+        const normalData: number[] = [];
         const indices: number[] = [];
 
         const verticesX = model.verticesX;
@@ -504,6 +698,50 @@ export class TokenMakerRenderer {
         const facesC = model.indices3;
 
         const modelTexCoords = model.uvs;
+
+        // For smooth shading, compute vertex normals
+        const smoothModel = tokenMaker.smoothModel;
+        const vertexNormals: Map<number, { x: number; y: number; z: number }> = new Map();
+
+        if (smoothModel) {
+            for (const face of faces) {
+                const index = face.index;
+                const fa = facesA[index];
+                const fb = facesB[index];
+                const fc = facesC[index];
+
+                const ax = verticesX[fa], ay = verticesY[fa], az = verticesZ[fa];
+                const bx = verticesX[fb], by = verticesY[fb], bz = verticesZ[fb];
+                const cx = verticesX[fc], cy = verticesY[fc], cz = verticesZ[fc];
+
+                const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+                const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+
+                const nx = e1y * e2z - e1z * e2y;
+                const ny = e1z * e2x - e1x * e2z;
+                const nz = e1x * e2y - e1y * e2x;
+
+                for (const vertIdx of [fa, fb, fc]) {
+                    const existing = vertexNormals.get(vertIdx);
+                    if (existing) {
+                        existing.x += nx;
+                        existing.y += ny;
+                        existing.z += nz;
+                    } else {
+                        vertexNormals.set(vertIdx, { x: nx, y: ny, z: nz });
+                    }
+                }
+            }
+
+            for (const [, normal] of vertexNormals) {
+                const len = Math.sqrt(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
+                if (len > 0.0001) {
+                    normal.x /= len;
+                    normal.y /= len;
+                    normal.z /= len;
+                }
+            }
+        }
 
         for (const face of faces) {
             const index = face.index;
@@ -551,6 +789,39 @@ export class TokenMakerRenderer {
                 hslC, alpha, u2, v2, textureIndex, priority,
             ));
 
+            // Pack normals for each vertex
+            if (smoothModel) {
+                const nA = vertexNormals.get(fa) || { x: 0, y: 1, z: 0 };
+                const nB = vertexNormals.get(fb) || { x: 0, y: 1, z: 0 };
+                const nC = vertexNormals.get(fc) || { x: 0, y: 1, z: 0 };
+                normalData.push(this.packNormal(nA.x, nA.y, nA.z));
+                normalData.push(this.packNormal(nB.x, nB.y, nB.z));
+                normalData.push(this.packNormal(nC.x, nC.y, nC.z));
+            } else {
+                const ax = verticesX[fa], ay = verticesY[fa], az = verticesZ[fa];
+                const bx = verticesX[fb], by = verticesY[fb], bz = verticesZ[fb];
+                const cx = verticesX[fc], cy = verticesY[fc], cz = verticesZ[fc];
+
+                const e1x = bx - ax, e1y = by - ay, e1z = bz - az;
+                const e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+
+                let nx = e1y * e2z - e1z * e2y;
+                let ny = e1z * e2x - e1x * e2z;
+                let nz = e1x * e2y - e1y * e2x;
+
+                const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+                if (len > 0.0001) {
+                    nx /= len;
+                    ny /= len;
+                    nz /= len;
+                }
+
+                const packedNormal = this.packNormal(nx, ny, nz);
+                normalData.push(packedNormal);
+                normalData.push(packedNormal);
+                normalData.push(packedNormal);
+            }
+
             indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
         }
 
@@ -566,6 +837,15 @@ export class TokenMakerRenderer {
         // Set up vertex attribute
         offscreenGl.enableVertexAttribArray(0);
         offscreenGl.vertexAttribIPointer(0, 3, offscreenGl.UNSIGNED_INT, 12, 0);
+
+        // Create normal buffer
+        const normalBuffer = offscreenGl.createBuffer()!;
+        offscreenGl.bindBuffer(offscreenGl.ARRAY_BUFFER, normalBuffer);
+        offscreenGl.bufferData(offscreenGl.ARRAY_BUFFER, new Uint32Array(normalData), offscreenGl.STATIC_DRAW);
+
+        // Set up normal attribute
+        offscreenGl.enableVertexAttribArray(1);
+        offscreenGl.vertexAttribIPointer(1, 1, offscreenGl.UNSIGNED_INT, 4, 0);
 
         // Create index buffer
         const indexBuffer = offscreenGl.createBuffer()!;
@@ -615,7 +895,9 @@ export class TokenMakerRenderer {
 
         offscreenGl.uniformMatrix4fv(projLoc, false, projectionMatrix);
         offscreenGl.uniformMatrix4fv(viewLoc, false, viewMatrix);
-        offscreenGl.uniform1f(brightnessLoc, 1.0);
+        // Convert brightness from 0-4 scale to internal format (higher value = darker)
+        const brightness = 1.0 - tokenMaker.brightness * 0.1;
+        offscreenGl.uniform1f(brightnessLoc, brightness);
         offscreenGl.uniform1f(colorBandingLoc, 255.0);
 
         // Set HD-specific uniforms
@@ -625,12 +907,14 @@ export class TokenMakerRenderer {
             const diffuseLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_diffuseStrength");
             const specularLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_specularStrength");
             const shininessLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_shininess");
+            const smoothShadingLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_smoothShading");
 
             offscreenGl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
             offscreenGl.uniform1f(ambientLoc, 0.35);
             offscreenGl.uniform1f(diffuseLoc, 0.6);
             offscreenGl.uniform1f(specularLoc, 0.25);
             offscreenGl.uniform1f(shininessLoc, 16.0);
+            offscreenGl.uniform1i(smoothShadingLoc, tokenMaker.smoothModel ? 1 : 0);
         }
 
         // Bind texture array
@@ -694,6 +978,7 @@ export class TokenMakerRenderer {
 
         // Clean up
         offscreenGl.deleteBuffer(vertexBuffer);
+        offscreenGl.deleteBuffer(normalBuffer);
         offscreenGl.deleteBuffer(indexBuffer);
         offscreenGl.deleteVertexArray(vao);
 

@@ -7,6 +7,11 @@
   resolved "https://registry.npmjs.org/@aashutoshrathi/word-wrap/-/word-wrap-1.2.6.tgz"
   integrity sha512-1Yjs2SvM8TflER/OD3cOjhWWOZb58A2t7wpE2S9XfBYTiIl+XFhQG2bjy4Pu1I+EAlCNUzRDYDdFwFYUKvXcIA==
 
+"@acransac/legal-notice@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@acransac/legal-notice/-/legal-notice-1.0.0.tgz#ec4d1a113374e232147d2e891300484a01c04d9c"
+  integrity sha512-zNirWlnPJ3YWlt1f6HHOXzHnIOISaY+OeXY1O7R9pjD9Q0MzHexh+fyAslJo8TZSL7H7qyzsd7h+2MNpEkqIEg==
+
 "@adobe/css-tools@^4.0.1":
   version "4.3.1"
   resolved "https://registry.npmjs.org/@adobe/css-tools/-/css-tools-4.3.1.tgz"

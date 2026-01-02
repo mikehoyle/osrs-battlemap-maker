@@ -153,10 +153,16 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         borderColor={tokenMaker.borderColor}
                         borderWidth={tokenMaker.borderWidth}
                         hdEnabled={tokenMaker.hdEnabled}
+                        brightness={tokenMaker.brightness}
+                        textureFilterMode={tokenMaker.textureFilterMode}
+                        smoothModel={tokenMaker.smoothModel}
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
                         onBorderColorChange={(c) => tokenMaker.setBorderColor(c)}
                         onBorderWidthChange={(w) => tokenMaker.setBorderWidth(w)}
                         onHdChange={(h) => tokenMaker.setHdEnabled(h)}
+                        onBrightnessChange={(b) => tokenMaker.setBrightness(b)}
+                        onTextureFilterChange={(m) => tokenMaker.setTextureFilterMode(m)}
+                        onSmoothModelChange={(s) => tokenMaker.setSmoothModel(s)}
                         onExport={handleExport}
                         canExport={tokenMaker.selectedNpcId !== null}
                     />

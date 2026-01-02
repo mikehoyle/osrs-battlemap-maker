@@ -12,21 +12,29 @@ uniform float u_ambientStrength;
 uniform float u_diffuseStrength;
 uniform float u_specularStrength;
 uniform float u_shininess;
+uniform bool u_smoothShading;
 
 in vec4 v_color;
 in vec2 v_texCoord;
 flat in uint v_texId;
 in vec3 v_worldPos;
+in vec3 v_normal;
 
 layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec4 baseColor = vec4(round(v_color.rgb * u_colorBanding) / u_colorBanding, v_color.a);
 
-    // Calculate face normal from screen-space derivatives
-    vec3 dFdxPos = dFdx(v_worldPos);
-    vec3 dFdyPos = dFdy(v_worldPos);
-    vec3 normal = normalize(cross(dFdxPos, dFdyPos));
+    vec3 normal;
+    if (u_smoothShading) {
+        // Use interpolated vertex normal for smooth shading
+        normal = normalize(v_normal);
+    } else {
+        // Calculate face normal from screen-space derivatives for flat shading
+        vec3 dFdxPos = dFdx(v_worldPos);
+        vec3 dFdyPos = dFdy(v_worldPos);
+        normal = normalize(cross(dFdxPos, dFdyPos));
+    }
 
     // Ensure normal faces up (towards camera in top-down view)
     // The view is looking down -Y, so we want normals with positive Y to be "front-facing"
