@@ -4,6 +4,14 @@
 -   Add personal-use disclaimer mumbo jumbo to legal
 -   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
 -   Figure out why it seems like some animations are missing?
+-   Better organized controls?
+-   Add zoom setting to places of interest  
+-   Places of Interest
+    - categorization 
+    - Fill out the hotlist
+    - Implement zoom
+    - Fix the button
+    - Fix the UI
 
 # Possible small additions
 
@@ -11,7 +19,6 @@
 
 # Bigger scope stuff
 
--   Add "hotlist" of places
 -   Add items to map (not sure about this one)
 -   Enemy token creator (NPC top-down export)
 
