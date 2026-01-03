@@ -381,6 +381,10 @@ export class NpcType extends Type {
             const bool = true;
         } else if (opcode === 144) {
             buffer.readUnsignedShort();
+        } else if (opcode === 145) {
+            // bool = true;
+        } else if (opcode === 146) {
+            buffer.readUnsignedShort();
         } else if (opcode >= 150 && opcode < 155) {
             // member only options
             this.actions[opcode - 150] = this.readString(buffer);

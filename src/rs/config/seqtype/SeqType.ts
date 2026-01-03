@@ -276,6 +276,8 @@ export class SeqType extends Type {
             if (this.cacheInfo.game === "oldschool") {
                 if (this.cacheInfo.revision < 226) {
                     this.decodeSkeletalDuration(buffer);
+                } else if (this.cacheInfo.revision >= 233) {
+                    const heightOffset = buffer.readUnsignedByte();
                 }
             } else {
                 // bool = true;
@@ -299,8 +301,12 @@ export class SeqType extends Type {
                 const b = true;
             }
         } else if (opcode === 19) {
-            const index = buffer.readUnsignedByte();
-            const value = buffer.readUnsignedByte();
+            if (this.cacheInfo.game === "oldschool") {
+                // crossworldsound = true;
+            } else {
+                const index = buffer.readUnsignedByte();
+                const value = buffer.readUnsignedByte();
+            }
         } else if (opcode === 20) {
             const index = buffer.readUnsignedByte();
             const max = buffer.readUnsignedShort();
