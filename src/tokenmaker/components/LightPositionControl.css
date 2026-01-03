@@ -1,0 +1,74 @@
+.light-position-control {
+    position: relative;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 2px solid #4a4a4a;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.light-position-control.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.light-position-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 70%;
+    height: 70%;
+    transform: translate(-50%, -50%);
+    border: 1px solid #3a3a3a;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.light-position-crosshair-h,
+.light-position-crosshair-v {
+    position: absolute;
+    background: #3a3a3a;
+    pointer-events: none;
+}
+
+.light-position-crosshair-h {
+    top: 50%;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.light-position-crosshair-v {
+    left: 50%;
+    top: 15%;
+    bottom: 15%;
+    width: 1px;
+    transform: translateX(-50%);
+}
+
+.light-position-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: #ff981f;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    transition: box-shadow 0.1s ease;
+}
+
+.light-position-control:hover .light-position-dot {
+    box-shadow: 0 0 8px rgba(255, 152, 31, 0.6);
+}
+
+.light-position-control:active .light-position-dot {
+    box-shadow: 0 0 12px rgba(255, 152, 31, 0.8);
+}
+
+.light-position-control.disabled .light-position-dot {
+    background: #666;
+    border-color: #888;
+}

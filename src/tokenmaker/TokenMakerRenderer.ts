@@ -643,8 +643,9 @@ export class TokenMakerRenderer {
             gl.uniformMatrix4fv(shadowProjLoc, false, this.projectionMatrix);
             gl.uniformMatrix4fv(shadowViewLoc, false, this.viewMatrix);
             gl.uniform1f(groundLevelLoc, this.modelGroundLevel);
-            // More overhead light for tighter shadow
-            gl.uniform3f(lightDirLoc, -0.15, 0.97, 0.15);
+            // Use light direction from user control
+            const shadowLightDir = tokenMaker.getLightDirection();
+            gl.uniform3f(lightDirLoc, shadowLightDir[0], shadowLightDir[1], shadowLightDir[2]);
             gl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
 
             gl.bindVertexArray(this.vao);
@@ -683,8 +684,9 @@ export class TokenMakerRenderer {
             const shininessLoc = gl.getUniformLocation(activeProgram.program, "u_shininess");
             const smoothShadingLoc = gl.getUniformLocation(activeProgram.program, "u_smoothShading");
 
-            // Light coming from top-left-front direction
-            gl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            // Use light direction from user control
+            const hdLightDir = tokenMaker.getLightDirection();
+            gl.uniform3f(lightDirLoc, hdLightDir[0], hdLightDir[1], hdLightDir[2]);
             gl.uniform1f(ambientLoc, 0.35);
             gl.uniform1f(diffuseLoc, 0.6);
             gl.uniform1f(specularLoc, 0.25);
@@ -954,8 +956,9 @@ export class TokenMakerRenderer {
             offscreenGl.uniformMatrix4fv(shadowProjLoc, false, projectionMatrix);
             offscreenGl.uniformMatrix4fv(shadowViewLoc, false, viewMatrix);
             offscreenGl.uniform1f(groundLevelLoc, groundLevel);
-            // More overhead light for tighter shadow
-            offscreenGl.uniform3f(lightDirLoc, -0.15, 0.97, 0.15);
+            // Use light direction from user control
+            const exportShadowLightDir = tokenMaker.getLightDirection();
+            offscreenGl.uniform3f(lightDirLoc, exportShadowLightDir[0], exportShadowLightDir[1], exportShadowLightDir[2]);
             offscreenGl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
 
             offscreenGl.bindVertexArray(vao);
@@ -996,7 +999,9 @@ export class TokenMakerRenderer {
             const shininessLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_shininess");
             const smoothShadingLoc = offscreenGl.getUniformLocation(offscreenProgram.program, "u_smoothShading");
 
-            offscreenGl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            // Use light direction from user control
+            const exportHdLightDir = tokenMaker.getLightDirection();
+            offscreenGl.uniform3f(lightDirLoc, exportHdLightDir[0], exportHdLightDir[1], exportHdLightDir[2]);
             offscreenGl.uniform1f(ambientLoc, 0.35);
             offscreenGl.uniform1f(diffuseLoc, 0.6);
             offscreenGl.uniform1f(specularLoc, 0.25);

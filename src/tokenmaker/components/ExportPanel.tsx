@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { ExportResolution, TextureFilterMode } from "../TokenMaker";
+import { LightPositionControl } from "./LightPositionControl";
 import "./ExportPanel.css";
 
 interface ExportPanelProps {
@@ -10,6 +11,8 @@ interface ExportPanelProps {
     smoothModel: boolean;
     shadowEnabled: boolean;
     shadowOpacity: number;
+    lightX: number;
+    lightZ: number;
     onResolutionChange: (resolution: ExportResolution) => void;
     onHdChange: (enabled: boolean) => void;
     onBrightnessChange: (value: number) => void;
@@ -17,6 +20,7 @@ interface ExportPanelProps {
     onSmoothModelChange: (enabled: boolean) => void;
     onShadowEnabledChange: (enabled: boolean) => void;
     onShadowOpacityChange: (opacity: number) => void;
+    onLightPositionChange: (x: number, z: number) => void;
     onExport: () => void;
     canExport: boolean;
 }
@@ -41,6 +45,8 @@ export function ExportPanel({
     smoothModel,
     shadowEnabled,
     shadowOpacity,
+    lightX,
+    lightZ,
     onResolutionChange,
     onHdChange,
     onBrightnessChange,
@@ -48,6 +54,7 @@ export function ExportPanel({
     onSmoothModelChange,
     onShadowEnabledChange,
     onShadowOpacityChange,
+    onLightPositionChange,
     onExport,
     canExport,
 }: ExportPanelProps): JSX.Element {
@@ -71,6 +78,16 @@ export function ExportPanel({
         },
         [onShadowOpacityChange],
     );
+
+    const handleLightPositionChange = useCallback(
+        (x: number, z: number) => {
+            onLightPositionChange(x, z);
+        },
+        [onLightPositionChange],
+    );
+
+    // Show light control when HD or shadows are enabled
+    const showLightControl = hdEnabled || shadowEnabled;
 
     return (
         <div className="control-panel rs-border rs-background export-panel">
@@ -104,6 +121,20 @@ export function ExportPanel({
                     </span>
                 </label>
             </div>
+
+            {showLightControl && (
+                <div className="control-row light-position-row">
+                    <label className="control-label">Light</label>
+                    <div className="light-position-wrapper">
+                        <LightPositionControl
+                            x={lightX}
+                            z={lightZ}
+                            onChange={handleLightPositionChange}
+                        />
+                        <span className="light-position-hint">Drag to adjust</span>
+                    </div>
+                </div>
+            )}
 
             <h3 className="control-panel-title section-title">Render Settings</h3>
 

@@ -78,16 +78,20 @@ export class TokenMaker {
 
     // Export settings
     exportResolution: ExportResolution = 128;
-    hdEnabled: boolean = false;
+    hdEnabled: boolean = true;
 
     // Renderer settings
     brightness: number = 1; // 0-4 scale (higher = darker)
     textureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
-    smoothModel: boolean = false;
+    smoothModel: boolean = true;
 
     // Shadow settings
     shadowEnabled: boolean = true;
     shadowOpacity: number = 0.5; // 0.2 - 0.8 range
+
+    // Light position (unit circle, center = overhead)
+    lightX: number = 0.15; // -1 = left, 1 = right
+    lightZ: number = -0.1; // -1 = bottom of screen, 1 = top of screen
 
     // Event callbacks
     onStateChange?: () => void;
@@ -315,5 +319,49 @@ export class TokenMaker {
             this.currentFrame = (this.currentFrame + 1) % maxFrame;
             this.onStateChange?.();
         }
+    }
+
+    setLightPosition(x: number, z: number): void {
+        // Clamp to unit circle
+        const dist = Math.sqrt(x * x + z * z);
+        if (dist > 1) {
+            this.lightX = x / dist;
+            this.lightZ = z / dist;
+        } else {
+            this.lightX = x;
+            this.lightZ = z;
+        }
+        this.onStateChange?.();
+    }
+
+    /**
+     * Computes the 3D light direction vector from the 2D control position.
+     * Returns [x, y, z] where the vector points FROM the scene TO the light source.
+     * The dot position represents where the light IS, so we negate to get direction TO light.
+     * At center (0,0) = straight overhead (0, 1, 0)
+     * At edge = angled light with max ~35° from vertical
+     */
+    getLightDirection(): [number, number, number] {
+        const dist = Math.sqrt(this.lightX * this.lightX + this.lightZ * this.lightZ);
+
+        if (dist < 0.001) {
+            // Center: straight overhead
+            return [0, 1, 0];
+        }
+
+        // Map distance to angle from vertical (0 at center, ~35° at edge)
+        const maxAngle = 35 * (Math.PI / 180); // 35 degrees in radians
+        const angle = dist * maxAngle;
+
+        const horizontalLength = Math.sin(angle);
+        const vertical = Math.cos(angle);
+
+        // Compute horizontal direction (normalized)
+        // Dot position represents where the light source IS
+        // Light direction points FROM scene TO light, so it matches the dot position
+        const dirX = -(this.lightX / dist) * horizontalLength;
+        const dirZ = -(this.lightZ / dist) * horizontalLength;
+
+        return [dirX, vertical, dirZ];
     }
 }

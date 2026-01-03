@@ -159,6 +159,8 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         smoothModel={tokenMaker.smoothModel}
                         shadowEnabled={tokenMaker.shadowEnabled}
                         shadowOpacity={tokenMaker.shadowOpacity}
+                        lightX={tokenMaker.lightX}
+                        lightZ={tokenMaker.lightZ}
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
                         onHdChange={(h) => tokenMaker.setHdEnabled(h)}
                         onBrightnessChange={(b) => tokenMaker.setBrightness(b)}
@@ -166,6 +168,7 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         onSmoothModelChange={(s) => tokenMaker.setSmoothModel(s)}
                         onShadowEnabledChange={(e) => tokenMaker.setShadowEnabled(e)}
                         onShadowOpacityChange={(o) => tokenMaker.setShadowOpacity(o)}
+                        onLightPositionChange={(x, z) => tokenMaker.setLightPosition(x, z)}
                         onExport={handleExport}
                         canExport={tokenMaker.selectedNpcId !== null}
                     />
