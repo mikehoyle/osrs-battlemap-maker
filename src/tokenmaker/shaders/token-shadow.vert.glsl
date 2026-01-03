@@ -45,7 +45,8 @@ void main() {
 
     // Calculate shadow projection
     // Height above ground determines how far the shadow is offset
-    float heightAboveGround = localPos.y - u_groundLevel;
+    // In OSRS coords, Y is negative going up, so height = groundLevel - localPos.y
+    float heightAboveGround = u_groundLevel - localPos.y;
 
     // Project shadow based on light direction
     // Light comes from u_lightDirection, shadow goes opposite in XZ

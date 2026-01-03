@@ -228,19 +228,21 @@ export class TokenMakerRenderer {
         const verticesZ = model.verticesZ;
 
         let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity;
+        let maxY = -Infinity;
         let minZ = Infinity, maxZ = -Infinity;
 
         for (let i = 0; i < model.verticesCount; i++) {
             minX = Math.min(minX, verticesX[i]);
             maxX = Math.max(maxX, verticesX[i]);
-            minY = Math.min(minY, verticesY[i]);
+            maxY = Math.max(maxY, verticesY[i]);
             minZ = Math.min(minZ, verticesZ[i]);
             maxZ = Math.max(maxZ, verticesZ[i]);
         }
 
-        // Store ground level for shadow projection (Y is negated in vertex shader)
-        this.modelGroundLevel = -minY / 128.0;
+        // Store ground level for shadow projection
+        // In OSRS, Y=0 is typically ground, negative Y is up
+        // maxY is the feet/ground level of the model
+        this.modelGroundLevel = maxY / 128.0;
 
         const modelWidth = maxX - minX;
         const modelDepth = maxZ - minZ;
@@ -641,7 +643,8 @@ export class TokenMakerRenderer {
             gl.uniformMatrix4fv(shadowProjLoc, false, this.projectionMatrix);
             gl.uniformMatrix4fv(shadowViewLoc, false, this.viewMatrix);
             gl.uniform1f(groundLevelLoc, this.modelGroundLevel);
-            gl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            // More overhead light for tighter shadow
+            gl.uniform3f(lightDirLoc, -0.15, 0.97, 0.15);
             gl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
 
             gl.bindVertexArray(this.vao);
@@ -959,12 +962,12 @@ export class TokenMakerRenderer {
 
         // Calculate model bounds for camera and shadow ground level
         let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity;
+        let maxY = -Infinity;
         let minZ = Infinity, maxZ = -Infinity;
         for (let i = 0; i < model.verticesCount; i++) {
             minX = Math.min(minX, verticesX[i]);
             maxX = Math.max(maxX, verticesX[i]);
-            minY = Math.min(minY, verticesY[i]);
+            maxY = Math.max(maxY, verticesY[i]);
             minZ = Math.min(minZ, verticesZ[i]);
             maxZ = Math.max(maxZ, verticesZ[i]);
         }
@@ -972,7 +975,7 @@ export class TokenMakerRenderer {
         const modelDepth = maxZ - minZ;
         const modelSize = Math.max(modelWidth, modelDepth);
         const zoom = (modelSize / 128) * 0.65;
-        const groundLevel = -minY / 128.0;
+        const groundLevel = maxY / 128.0;
 
         // Set up camera
         const projectionMatrix = mat4.create();
@@ -1007,7 +1010,8 @@ export class TokenMakerRenderer {
             offscreenGl.uniformMatrix4fv(shadowProjLoc, false, projectionMatrix);
             offscreenGl.uniformMatrix4fv(shadowViewLoc, false, viewMatrix);
             offscreenGl.uniform1f(groundLevelLoc, groundLevel);
-            offscreenGl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            // More overhead light for tighter shadow
+            offscreenGl.uniform3f(lightDirLoc, -0.15, 0.97, 0.15);
             offscreenGl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
 
             offscreenGl.bindVertexArray(vao);
