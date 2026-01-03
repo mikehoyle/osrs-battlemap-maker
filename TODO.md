@@ -7,6 +7,7 @@
 -   Better organized controls?
 -   Places of Interest
     - categorization
+-   Page title
 
 # Possible small additions
 
