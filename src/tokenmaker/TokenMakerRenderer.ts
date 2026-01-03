@@ -701,62 +701,6 @@ export class TokenMakerRenderer {
         gl.bindVertexArray(this.vao);
         gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_INT, 0);
         gl.bindVertexArray(null);
-
-        // Render the base circle overlay
-        this.renderBaseOverlay();
-    }
-
-    renderBaseOverlay(): void {
-        const tokenMaker = this.tokenMaker;
-        const overlayCanvas = this.overlayCanvas;
-
-        // Resize overlay canvas to match main canvas
-        const displayWidth = Math.max(this.canvas.clientWidth, 1);
-        const displayHeight = Math.max(this.canvas.clientHeight, 1);
-        if (overlayCanvas.width !== displayWidth || overlayCanvas.height !== displayHeight) {
-            overlayCanvas.width = displayWidth;
-            overlayCanvas.height = displayHeight;
-        }
-
-        const ctx = overlayCanvas.getContext("2d");
-        if (!ctx) return;
-
-        // Clear the overlay
-        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-
-        // Only draw if we have an NPC selected
-        if (tokenMaker.selectedNpcId === null) {
-            return;
-        }
-
-        const size = Math.min(overlayCanvas.width, overlayCanvas.height);
-        const centerX = overlayCanvas.width / 2;
-        const centerY = overlayCanvas.height / 2;
-
-        const borderWidth = tokenMaker.borderWidth;
-        const baseScale = tokenMaker.baseScale;
-        const baseFilled = tokenMaker.baseFilled;
-        const baseFillColor = tokenMaker.baseFillColor;
-        const borderColor = tokenMaker.borderColor;
-
-        // Calculate radius based on baseScale
-        const baseRadius = (size / 2) * baseScale;
-        const innerRadius = baseRadius - borderWidth;
-
-        // Draw solid filled circle if enabled (this is behind the model)
-        if (baseFilled) {
-            ctx.fillStyle = baseFillColor;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Draw border
-        ctx.strokeStyle = borderColor;
-        ctx.lineWidth = borderWidth;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, baseRadius - borderWidth / 2, 0, Math.PI * 2);
-        ctx.stroke();
     }
 
     async exportToken(): Promise<Blob | null> {
@@ -1074,65 +1018,15 @@ export class TokenMakerRenderer {
         const pixels = new Uint8Array(resolution * resolution * 4);
         offscreenGl.readPixels(0, 0, resolution, resolution, offscreenGl.RGBA, offscreenGl.UNSIGNED_BYTE, pixels);
 
-        // Create 2D canvas for post-processing
+        // Create 2D canvas for final output
         const finalCanvas = document.createElement("canvas");
         finalCanvas.width = resolution;
         finalCanvas.height = resolution;
         const ctx = finalCanvas.getContext("2d")!;
 
-        // Create ImageData from pixels (flip Y)
-        const imageData = ctx.createImageData(resolution, resolution);
-        for (let y = 0; y < resolution; y++) {
-            for (let x = 0; x < resolution; x++) {
-                const srcIdx = ((resolution - 1 - y) * resolution + x) * 4;
-                const dstIdx = (y * resolution + x) * 4;
-                imageData.data[dstIdx] = pixels[srcIdx];
-                imageData.data[dstIdx + 1] = pixels[srcIdx + 1];
-                imageData.data[dstIdx + 2] = pixels[srcIdx + 2];
-                imageData.data[dstIdx + 3] = pixels[srcIdx + 3];
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
-
-        // Apply circular mask with border
-        const borderWidth = tokenMaker.borderWidth;
-        const borderColor = tokenMaker.borderColor;
-        const baseFillColor = tokenMaker.baseFillColor;
-        const baseScale = tokenMaker.baseScale;
-        const baseFilled = tokenMaker.baseFilled;
-
-        // Calculate radius based on baseScale
-        const baseRadius = (resolution / 2) * baseScale;
-        const innerRadius = baseRadius - borderWidth;
-
-        // Apply circular mask
-        const maskCanvas = document.createElement("canvas");
-        maskCanvas.width = resolution;
-        maskCanvas.height = resolution;
-        const maskCtx = maskCanvas.getContext("2d")!;
-
-        maskCtx.drawImage(finalCanvas, 0, 0);
-        maskCtx.globalCompositeOperation = "destination-in";
-        maskCtx.beginPath();
-        maskCtx.arc(resolution / 2, resolution / 2, innerRadius, 0, Math.PI * 2);
-        maskCtx.fill();
-
-        // Draw solid filled base circle behind the model if enabled
-        maskCtx.globalCompositeOperation = "destination-over";
-        if (baseFilled) {
-            maskCtx.fillStyle = baseFillColor;
-            maskCtx.beginPath();
-            maskCtx.arc(resolution / 2, resolution / 2, innerRadius, 0, Math.PI * 2);
-            maskCtx.fill();
-        }
-
-        // Draw shadow behind everything (shadow extends beyond circle)
+        // Draw shadow first (behind model) if enabled
         if (shadowPixels) {
-            const shadowCanvas = document.createElement("canvas");
-            shadowCanvas.width = resolution;
-            shadowCanvas.height = resolution;
-            const shadowCtx = shadowCanvas.getContext("2d")!;
-            const shadowImageData = shadowCtx.createImageData(resolution, resolution);
+            const shadowImageData = ctx.createImageData(resolution, resolution);
             for (let y = 0; y < resolution; y++) {
                 for (let x = 0; x < resolution; x++) {
                     const srcIdx = ((resolution - 1 - y) * resolution + x) * 4;
@@ -1143,18 +1037,27 @@ export class TokenMakerRenderer {
                     shadowImageData.data[dstIdx + 3] = shadowPixels[srcIdx + 3];
                 }
             }
-            shadowCtx.putImageData(shadowImageData, 0, 0);
-            maskCtx.globalCompositeOperation = "destination-over";
-            maskCtx.drawImage(shadowCanvas, 0, 0);
+            ctx.putImageData(shadowImageData, 0, 0);
         }
 
-        // Draw border on top
-        maskCtx.globalCompositeOperation = "source-over";
-        maskCtx.strokeStyle = borderColor;
-        maskCtx.lineWidth = borderWidth;
-        maskCtx.beginPath();
-        maskCtx.arc(resolution / 2, resolution / 2, baseRadius - borderWidth / 2, 0, Math.PI * 2);
-        maskCtx.stroke();
+        // Draw model on top of shadow
+        const modelCanvas = document.createElement("canvas");
+        modelCanvas.width = resolution;
+        modelCanvas.height = resolution;
+        const modelCtx = modelCanvas.getContext("2d")!;
+        const imageData = modelCtx.createImageData(resolution, resolution);
+        for (let y = 0; y < resolution; y++) {
+            for (let x = 0; x < resolution; x++) {
+                const srcIdx = ((resolution - 1 - y) * resolution + x) * 4;
+                const dstIdx = (y * resolution + x) * 4;
+                imageData.data[dstIdx] = pixels[srcIdx];
+                imageData.data[dstIdx + 1] = pixels[srcIdx + 1];
+                imageData.data[dstIdx + 2] = pixels[srcIdx + 2];
+                imageData.data[dstIdx + 3] = pixels[srcIdx + 3];
+            }
+        }
+        modelCtx.putImageData(imageData, 0, 0);
+        ctx.drawImage(modelCanvas, 0, 0);
 
         // Clean up
         offscreenGl.deleteBuffer(vertexBuffer);
@@ -1164,7 +1067,7 @@ export class TokenMakerRenderer {
 
         // Export as PNG
         return new Promise((resolve) => {
-            maskCanvas.toBlob(resolve, "image/png");
+            finalCanvas.toBlob(resolve, "image/png");
         });
     }
 }

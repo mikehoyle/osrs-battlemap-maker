@@ -4,11 +4,6 @@ import "./ExportPanel.css";
 
 interface ExportPanelProps {
     resolution: ExportResolution;
-    borderColor: string;
-    borderWidth: number;
-    baseFilled: boolean;
-    baseFillColor: string;
-    baseScale: number;
     hdEnabled: boolean;
     brightness: number;
     textureFilterMode: TextureFilterMode;
@@ -16,11 +11,6 @@ interface ExportPanelProps {
     shadowEnabled: boolean;
     shadowOpacity: number;
     onResolutionChange: (resolution: ExportResolution) => void;
-    onBorderColorChange: (color: string) => void;
-    onBorderWidthChange: (width: number) => void;
-    onBaseFilledChange: (filled: boolean) => void;
-    onBaseFillColorChange: (color: string) => void;
-    onBaseScaleChange: (scale: number) => void;
     onHdChange: (enabled: boolean) => void;
     onBrightnessChange: (value: number) => void;
     onTextureFilterChange: (mode: TextureFilterMode) => void;
@@ -32,16 +22,6 @@ interface ExportPanelProps {
 }
 
 const RESOLUTIONS: ExportResolution[] = [64, 128, 256];
-
-const BORDER_COLORS = [
-    { name: "Gold", value: "#ff981f" },
-    { name: "Red", value: "#ff3333" },
-    { name: "Blue", value: "#3366ff" },
-    { name: "Green", value: "#33cc33" },
-    { name: "Purple", value: "#9933ff" },
-    { name: "White", value: "#ffffff" },
-    { name: "Black", value: "#333333" },
-];
 
 const TEXTURE_FILTER_OPTIONS = [
     { label: "Disabled", value: TextureFilterMode.DISABLED },
@@ -55,11 +35,6 @@ const TEXTURE_FILTER_OPTIONS = [
 
 export function ExportPanel({
     resolution,
-    borderColor,
-    borderWidth,
-    baseFilled,
-    baseFillColor,
-    baseScale,
     hdEnabled,
     brightness,
     textureFilterMode,
@@ -67,11 +42,6 @@ export function ExportPanel({
     shadowEnabled,
     shadowOpacity,
     onResolutionChange,
-    onBorderColorChange,
-    onBorderWidthChange,
-    onBaseFilledChange,
-    onBaseFillColorChange,
-    onBaseScaleChange,
     onHdChange,
     onBrightnessChange,
     onTextureFilterChange,
@@ -81,34 +51,6 @@ export function ExportPanel({
     onExport,
     canExport,
 }: ExportPanelProps): JSX.Element {
-    const handleBorderWidthChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            onBorderWidthChange(parseInt(e.target.value));
-        },
-        [onBorderWidthChange],
-    );
-
-    const handleBaseScaleChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            onBaseScaleChange(parseInt(e.target.value) / 100);
-        },
-        [onBaseScaleChange],
-    );
-
-    const handleFillColorChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            onBaseFillColorChange(e.target.value);
-        },
-        [onBaseFillColorChange],
-    );
-
-    const handleColorChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            onBorderColorChange(e.target.value);
-        },
-        [onBorderColorChange],
-    );
-
     const handleBrightnessChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             onBrightnessChange(parseInt(e.target.value));
@@ -162,81 +104,6 @@ export function ExportPanel({
                     </span>
                 </label>
             </div>
-
-            <div className="control-row">
-                <label className="control-label">Border</label>
-                <div className="color-picker-row">
-                    {BORDER_COLORS.map((color) => (
-                        <button
-                            key={color.value}
-                            className={`color-swatch ${borderColor === color.value ? "selected" : ""}`}
-                            style={{ backgroundColor: color.value }}
-                            onClick={() => onBorderColorChange(color.value)}
-                            title={color.name}
-                        />
-                    ))}
-                    <input
-                        type="color"
-                        className="color-input"
-                        value={borderColor}
-                        onChange={handleColorChange}
-                        title="Custom color"
-                    />
-                </div>
-            </div>
-
-            <div className="control-row">
-                <label className="control-label">Width</label>
-                <input
-                    type="range"
-                    className="control-slider"
-                    min={1}
-                    max={16}
-                    value={borderWidth}
-                    onChange={handleBorderWidthChange}
-                />
-                <span className="width-value">{borderWidth}px</span>
-            </div>
-
-            <div className="control-row">
-                <label className="control-label">Base Size</label>
-                <input
-                    type="range"
-                    className="control-slider"
-                    min={30}
-                    max={100}
-                    value={Math.round(baseScale * 100)}
-                    onChange={handleBaseScaleChange}
-                />
-                <span className="width-value">{Math.round(baseScale * 100)}%</span>
-            </div>
-
-            <div className="control-row">
-                <label className="control-label">Filled</label>
-                <label className="hd-toggle">
-                    <input
-                        type="checkbox"
-                        checked={baseFilled}
-                        onChange={(e) => onBaseFilledChange(e.target.checked)}
-                    />
-                    <span className="hd-toggle-label">
-                        Fill base circle
-                    </span>
-                </label>
-            </div>
-
-            {baseFilled && (
-                <div className="control-row">
-                    <label className="control-label">Fill Color</label>
-                    <input
-                        type="color"
-                        className="color-input fill-color-input"
-                        value={baseFillColor}
-                        onChange={handleFillColorChange}
-                        title="Base fill color"
-                    />
-                </div>
-            )}
 
             <h3 className="control-panel-title section-title">Render Settings</h3>
 

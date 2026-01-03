@@ -6,5 +6,5 @@ const licenseWithNewline = Buffer.concat([license, Buffer.from("\n", "utf8")]);
 fs.writeFileSync("NOTICE", licenseWithNewline);
 execSync("npx legal-notice >> NOTICE", { stdio: "inherit" });
 
-// Copy to public folder for runtime access
+// Copy to public folder for runtime access (legal page)
 fs.copyFileSync("NOTICE", "public/NOTICE");

@@ -1,7 +1,9 @@
 # Main stuff
 
--   Add grid options to query params (maybe local storage too?)
 -   Remove controller/joystick controls?
+-   Add personal-use disclaimer mumbo jumbo to legal
+-   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
+-   Figure out why it seems like some animations are missing?
 
 # Possible small additions
 
@@ -15,6 +17,7 @@
 
 # Done!
 
+-   Add grid options to query params (maybe local storage too?)
 -   Remove perspective camera setting (and camera settings entirely probably)
 -   Click and drag moves map
 -   Limit pitch/yaw -- no pitch changes, yaw only in 90deg increments

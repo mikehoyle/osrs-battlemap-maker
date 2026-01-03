@@ -153,11 +153,6 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
 
                     <ExportPanel
                         resolution={tokenMaker.exportResolution}
-                        borderColor={tokenMaker.borderColor}
-                        borderWidth={tokenMaker.borderWidth}
-                        baseFilled={tokenMaker.baseFilled}
-                        baseFillColor={tokenMaker.baseFillColor}
-                        baseScale={tokenMaker.baseScale}
                         hdEnabled={tokenMaker.hdEnabled}
                         brightness={tokenMaker.brightness}
                         textureFilterMode={tokenMaker.textureFilterMode}
@@ -165,11 +160,6 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         shadowEnabled={tokenMaker.shadowEnabled}
                         shadowOpacity={tokenMaker.shadowOpacity}
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
-                        onBorderColorChange={(c) => tokenMaker.setBorderColor(c)}
-                        onBorderWidthChange={(w) => tokenMaker.setBorderWidth(w)}
-                        onBaseFilledChange={(f) => tokenMaker.setBaseFilled(f)}
-                        onBaseFillColorChange={(c) => tokenMaker.setBaseFillColor(c)}
-                        onBaseScaleChange={(s) => tokenMaker.setBaseScale(s)}
                         onHdChange={(h) => tokenMaker.setHdEnabled(h)}
                         onBrightnessChange={(b) => tokenMaker.setBrightness(b)}
                         onTextureFilterChange={(m) => tokenMaker.setTextureFilterMode(m)}

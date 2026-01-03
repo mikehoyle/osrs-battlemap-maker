@@ -1,17 +1,17 @@
+import { CacheList, LoadedCache } from "../mapviewer/Caches";
 import { CacheSystem } from "../rs/cache/CacheSystem";
 import { CacheLoaderFactory, getCacheLoaderFactory } from "../rs/cache/loader/CacheLoaderFactory";
+import { NpcModelLoader } from "../rs/config/npctype/NpcModelLoader";
 import { NpcType } from "../rs/config/npctype/NpcType";
 import { NpcTypeLoader } from "../rs/config/npctype/NpcTypeLoader";
-import { NpcModelLoader } from "../rs/config/npctype/NpcModelLoader";
-import { SeqTypeLoader } from "../rs/config/seqtype/SeqTypeLoader";
 import { SeqType } from "../rs/config/seqtype/SeqType";
+import { SeqTypeLoader } from "../rs/config/seqtype/SeqTypeLoader";
 import { VarManager } from "../rs/config/vartype/VarManager";
+import { Model } from "../rs/model/Model";
 import { ModelLoader } from "../rs/model/ModelLoader";
 import { SeqFrameLoader } from "../rs/model/seq/SeqFrameLoader";
 import { SkeletalSeqLoader } from "../rs/model/skeletal/SkeletalSeqLoader";
 import { TextureLoader } from "../rs/texture/TextureLoader";
-import { CacheList, LoadedCache } from "../mapviewer/Caches";
-import { Model } from "../rs/model/Model";
 
 export type NpcOption = {
     id: number;
@@ -78,11 +78,6 @@ export class TokenMaker {
 
     // Export settings
     exportResolution: ExportResolution = 128;
-    borderColor: string = "#ff981f";
-    borderWidth: number = 4;
-    baseFilled: boolean = true;
-    baseFillColor: string = "#888888";
-    baseScale: number = 0.8;
     hdEnabled: boolean = false;
 
     // Renderer settings
@@ -276,31 +271,6 @@ export class TokenMaker {
 
     setExportResolution(resolution: ExportResolution): void {
         this.exportResolution = resolution;
-        this.onStateChange?.();
-    }
-
-    setBorderColor(color: string): void {
-        this.borderColor = color;
-        this.onStateChange?.();
-    }
-
-    setBorderWidth(width: number): void {
-        this.borderWidth = Math.max(1, Math.min(width, 16));
-        this.onStateChange?.();
-    }
-
-    setBaseFilled(filled: boolean): void {
-        this.baseFilled = filled;
-        this.onStateChange?.();
-    }
-
-    setBaseFillColor(color: string): void {
-        this.baseFillColor = color;
-        this.onStateChange?.();
-    }
-
-    setBaseScale(scale: number): void {
-        this.baseScale = Math.max(0.3, Math.min(scale, 1.0));
         this.onStateChange?.();
     }
 
