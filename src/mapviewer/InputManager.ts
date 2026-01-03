@@ -51,6 +51,7 @@ export class InputManager {
             this.cleanUp();
         }
         this.element = element;
+        this.element.style.cursor = "grab";
 
         window.addEventListener("gamepadconnected", this.onGamepadConnected);
         window.addEventListener("gamepaddisconnected", this.onGamepadDisconnected);
@@ -181,6 +182,7 @@ export class InputManager {
         this.dragY = y;
         this.mouseX = x;
         this.mouseY = y;
+        this.element.style.cursor = "grabbing";
     };
 
     private onMouseMove = (event: MouseEvent) => {
@@ -197,10 +199,16 @@ export class InputManager {
     private onMouseUp = (event: MouseEvent) => {
         this.dragX = -1;
         this.dragY = -1;
+        if (this.element) {
+            this.element.style.cursor = "grab";
+        }
     };
 
     private onMouseLeave = (event: MouseEvent) => {
         this.resetMouse();
+        if (this.element) {
+            this.element.style.cursor = "grab";
+        }
     };
 
     private onMouseWheel = (event: WheelEvent) => {
@@ -217,6 +225,7 @@ export class InputManager {
         this.mouseX = x;
         this.mouseY = y;
         this.isTouch = true;
+        this.element.style.cursor = "grabbing";
     };
 
     private onTouchMove = (event: TouchEvent) => {
@@ -231,6 +240,9 @@ export class InputManager {
     private onTouchEnd = (event: TouchEvent) => {
         this.dragX = -1;
         this.dragY = -1;
+        if (this.element) {
+            this.element.style.cursor = "grab";
+        }
     };
 
     private onContextMenu = (event: MouseEvent) => {

@@ -9,7 +9,8 @@
 
 .hud.left-top {
     position: absolute;
-    padding: 10px;
+    padding-left: 10px;
+    padding-top: 10px;
 }
 .hud.right-top {
     position: absolute;

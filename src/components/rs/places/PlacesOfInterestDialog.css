@@ -18,7 +18,7 @@
     max-height: 80vh;
     overflow: auto;
     outline: none;
-    padding: 20px;
+    padding: 30px;
 }
 
 .places-close-button {
@@ -40,7 +40,7 @@
 .places-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .places-title {
@@ -58,7 +58,7 @@
 }
 
 .places-item {
-    padding: 12px 16px;
+    padding: 5px 16px;
     background-color: #2b2620;
     border: 2px solid #5a4d3a;
     cursor: pointer;

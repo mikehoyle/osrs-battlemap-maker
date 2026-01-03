@@ -5,7 +5,7 @@ export interface PlaceOfInterest {
     camera: {
         x: number;
         z: number;
-        zoom: number; // TODO: not yet used
+        zoom: number;
     };
     grid: Pick<GridSettings, "widthInCells" | "heightInCells">;
 }
@@ -100,8 +100,8 @@ export const PLACES_OF_INTEREST: PlaceOfInterest[] = [
     {
         name: "Last Light Island",
         camera: {
-            x: 2852,
-            z: 2326,
+            x: 2851,
+            z: 2328,
             zoom: 71,
         },
         grid: {

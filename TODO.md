@@ -5,16 +5,14 @@
 -   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
 -   Figure out why it seems like some animations are missing?
 -   Better organized controls?
--   Add zoom setting to places of interest  
 -   Places of Interest
-    - categorization 
-    - Fill out the hotlist
-    - Implement zoom
+    - categorization
     - Fix the button
     - Fix the UI
 
 # Possible small additions
 
+-   More in POI list
 -   Export resolution options
 
 # Bigger scope stuff

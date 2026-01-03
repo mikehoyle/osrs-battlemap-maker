@@ -102,6 +102,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const onPlaceSelected = useCallback(
         (place: PlaceOfInterest) => {
             mapViewer.camera.teleport(place.camera.x, undefined, place.camera.z);
+            mapViewer.camera.orthoZoom = place.camera.zoom;
             renderer.gridRenderer.setSettings({
                 automaticGridSize: false,
                 widthInCells: place.grid.widthInCells,

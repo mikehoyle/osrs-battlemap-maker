@@ -1,6 +1,6 @@
 .minimap-container {
     position: relative;
-    width: 181px;
+    width: 210px;
     height: 165px;
     overflow: hidden;
     z-index: 10;
@@ -14,7 +14,7 @@
     display: flex;
     flex-direction: row;
     border-image-source: url(./worldmap-button-nineslice.png);
-    border-image-slice: 16;
+    border-image-slice: 16 fill;
     border-image-width: 24px;
     border-image-repeat: repeat;
     padding-right: 20px;
@@ -25,6 +25,7 @@
     background-image: url(./worldmap-icon.png);
     background-size: 32px 32px;
     width: 32px;
+    min-width: 32px;
     height: 32px;
 }
 
@@ -46,7 +47,7 @@
     display: flex;
     flex-direction: row;
     border-image-source: url(./worldmap-button-nineslice.png);
-    border-image-slice: 16;
+    border-image-slice: 16 fill;
     border-image-width: 24px;
     border-image-repeat: repeat;
     padding-right: 20px;
@@ -54,14 +55,15 @@
 }
 
 .places-button .places-icon {
-    background-image: url(./worldmap-icon.png);
+    background-image: url(./teleport-button.png);
     background-size: 32px 32px;
     width: 32px;
+    min-width: 32px;
     height: 32px;
 }
 
 .places-button:hover .places-icon {
-    background-image: url(./worldmap-icon-hover.png);
+    background-image: url(./teleport-button-hover.png);
 }
 
 .places-button .places-text {

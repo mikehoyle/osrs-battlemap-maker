@@ -9,11 +9,11 @@ OSRS Battle Map Maker - A 3D web-based RuneScape map visualization tool forked f
 ## Development Commands
 
 ```bash
-yarn start              # Dev server on localhost:3000
-yarn build              # Production build
-yarn test               # Run Jest tests
-yarn lint               # Format all files with Prettier
-yarn download-caches    # Download OSRS cache files (required before first run)
+npm run start              # Dev server on localhost:3000
+npm run build              # Production build
+npm run test               # Run Jest tests
+npm run lint               # Format all files with Prettier
+npm run download-caches    # Download OSRS cache files (required before first run)
 ```
 
 ## Architecture
