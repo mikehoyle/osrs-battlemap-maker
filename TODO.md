@@ -7,8 +7,6 @@
 -   Better organized controls?
 -   Places of Interest
     - categorization
-    - Fix the button
-    - Fix the UI
 
 # Possible small additions
 

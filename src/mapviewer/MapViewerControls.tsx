@@ -12,7 +12,7 @@ import { isTouchDevice } from "../util/DeviceUtil";
 import { downloadBlob } from "../util/DownloadUtil";
 import { loadCacheFiles } from "./Caches";
 import { ProjectionType } from "./Camera";
-import { MapViewer } from "./MapViewer";
+import { ExportResolution, MapViewer } from "./MapViewer";
 import { MapViewerRenderer } from "./MapViewerRenderer";
 import {
     MapViewerRendererType,
@@ -50,6 +50,7 @@ export const MapViewerControls = memo(
         );
 
         const [isExportingBattlemap, setExportingBattlemap] = useState(false);
+        const [exportResolution, setExportResolution] = useState<ExportResolution>(128);
 
         const positionControls = isTouchDevice
             ? "Joystick, Drag up and down." // TODO: confirm this is actually right for mobile
@@ -178,6 +179,18 @@ export const MapViewerControls = memo(
                 ),
                 Export: folder(
                     {
+                        Resolution: {
+                            value: exportResolution,
+                            options: {
+                                "64px": 64 as ExportResolution,
+                                "128px": 128 as ExportResolution,
+                                "256px": 256 as ExportResolution,
+                            },
+                            onChange: (v: ExportResolution) => {
+                                setExportResolution(v);
+                            },
+                            order: 0,
+                        },
                         "Export Map": button(
                             () => {
                                 if (isExportingBattlemap) {
@@ -185,7 +198,7 @@ export const MapViewerControls = memo(
                                 }
                                 setExportingBattlemap(true);
                                 mapViewer
-                                    .exportBattlemap()
+                                    .exportBattlemap(exportResolution)
                                     .then((blob) => {
                                         if (!blob) {
                                             // TODO actual error handling, but I think this should be rare
@@ -205,7 +218,7 @@ export const MapViewerControls = memo(
                     { collapsed: true, order: 4 },
                 ),
             }),
-            [renderer, isExportingBattlemap],
+            [renderer, isExportingBattlemap, exportResolution],
         );
 
         // Sync the Leva zoom slider when zoom changes via scroll wheel

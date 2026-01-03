@@ -47,7 +47,7 @@ type PersistedGridSettings = Pick<
 export class GridRenderer2D {
     private settings: GridSettings = {
         enabled: true,
-        widthPx: 1,
+        widthPx: 0.5,
         color: {
             r: 0,
             g: 0,
@@ -148,6 +148,30 @@ export class GridRenderer2D {
         return this.settings;
     }
 
+    /**
+     * Directly restores settings and maxGridSize without side effects.
+     * Used for export to restore state after temporary modifications.
+     */
+    restoreState(settings: GridSettings, maxGridSize: MaxGridSize): void {
+        this.settings = { ...settings };
+        this.maxGridSize = { ...maxGridSize };
+
+        // Notify listeners so UI updates to reflect restored state
+        for (const listener of this.maxGridSizeChangedListeners) {
+            listener({
+                maxWidthInCells: maxGridSize.maxWidthInCells,
+                maxHeightInCells: maxGridSize.maxHeightInCells,
+                automaticGridSize: settings.automaticGridSize,
+                widthInCells: settings.widthInCells,
+                heightInCells: settings.heightInCells,
+            });
+        }
+    }
+
+    getMaxGridSize(): MaxGridSize {
+        return this.maxGridSize;
+    }
+
     onMaxGridSizeChanged(callback: MaxGridSizeCallback): () => void {
         this.maxGridSizeChangedListeners.add(callback);
         return () => this.maxGridSizeChangedListeners.delete(callback);
@@ -208,7 +232,6 @@ export class GridRenderer2D {
 
     draw(overlayCanvas: HTMLCanvasElement, camera: Camera): void {
         const ctx = overlayCanvas.getContext("2d");
-        const devicePixelRatio = window.devicePixelRatio || 1;
         if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
             // Clear if disabled or not in Ortho mode
             // (the latter should never happen in this version, but who knows)
@@ -224,9 +247,15 @@ export class GridRenderer2D {
         const camPos = camera.pos;
         const zoom = camera.orthoZoom;
 
+        // Calculate scale factor to match export resolution (base = 64px per cell)
+        // Cell size in canvas pixels = orthoZoom / 2
+        // Scale factor = actual cell size / base cell size (64px)
+        const cellSizePx = zoom / 2;
+        const scaleFactor = cellSizePx / 64;
+
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = this.cssColor;
-        ctx.lineWidth = this.settings.widthPx * devicePixelRatio;
+        ctx.lineWidth = this.settings.widthPx * scaleFactor;
 
         const baseHalfWorldSpanX = width / zoom;
         const baseHalfWorldSpanY = height / zoom;
@@ -260,7 +289,7 @@ export class GridRenderer2D {
             const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLine(ctx, p1, p2);
+                this.drawLine(ctx, p1, p2, scaleFactor);
             }
         }
 
@@ -270,7 +299,7 @@ export class GridRenderer2D {
             const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLine(ctx, p1, p2);
+                this.drawLine(ctx, p1, p2, scaleFactor);
             }
         }
 
@@ -320,13 +349,12 @@ export class GridRenderer2D {
         };
     }
 
-    private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2) {
-        const devicePixelRatio = window.devicePixelRatio || 1;
+    private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2, scaleFactor: number) {
         ctx.beginPath();
         if (this.settings.dashedLine && this.settings.dashLengthPx && this.settings.gapLengthPx) {
             ctx.setLineDash([
-                this.settings.dashLengthPx * devicePixelRatio,
-                this.settings.gapLengthPx * devicePixelRatio,
+                this.settings.dashLengthPx * scaleFactor,
+                this.settings.gapLengthPx * scaleFactor,
             ]);
         } else {
             ctx.setLineDash([]);
@@ -340,5 +368,91 @@ export class GridRenderer2D {
         return `rgba(${this.settings.color.r}, ${this.settings.color.g}, ${
             this.settings.color.b
         }, ${this.settings.color.a ?? 1})`;
+    }
+
+    /**
+     * Renders the grid to a provided canvas at a specific scale.
+     * Used for export functionality where we need the grid at a different resolution.
+     * @param canvas The canvas to render to
+     * @param camera The camera to use for projection
+     * @param scaleFactor Scale factor for line widths (e.g., 4 for 256px resolution vs 64px base)
+     */
+    renderToCanvas(canvas: HTMLCanvasElement, camera: Camera, scaleFactor: number = 1): void {
+        const ctx = canvas.getContext("2d");
+        if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+            return;
+        }
+
+        const width = canvas.width;
+        const height = canvas.height;
+        const viewProjMatrix = camera.viewProjMatrix;
+        const gridSize = this.worldGridCellSize;
+        const camPos = camera.pos;
+        const zoom = camera.orthoZoom;
+
+        ctx.clearRect(0, 0, width, height);
+        ctx.strokeStyle = this.cssColor;
+        // Scale line width proportionally with resolution
+        ctx.lineWidth = this.settings.widthPx * scaleFactor;
+
+        const baseHalfWorldSpanX = width / zoom;
+        const baseHalfWorldSpanY = height / zoom;
+
+        const yaw = (camera.getYaw() - 1024) * RS_TO_RADIANS;
+        const cosYaw = Math.abs(Math.cos(yaw));
+        const sinYaw = Math.abs(Math.sin(yaw));
+
+        const halfWorldSpanX = baseHalfWorldSpanX * cosYaw + baseHalfWorldSpanY * sinYaw;
+        const halfWorldSpanY = baseHalfWorldSpanX * sinYaw + baseHalfWorldSpanY * cosYaw;
+
+        const camX = camPos[0];
+        const camZ = camPos[2];
+
+        const minX = camX - halfWorldSpanX;
+        const maxX = camX + halfWorldSpanX;
+        const minZ = camZ - halfWorldSpanY;
+        const maxZ = camZ + halfWorldSpanY;
+
+        let firstX = Math.floor(minX / gridSize) * gridSize;
+        let firstZ = Math.floor(minZ / gridSize) * gridSize;
+
+        // Vertical Lines (X-axis)
+        for (let Xw = firstX; Xw <= maxX + gridSize; Xw += gridSize) {
+            const p1 = this.projectWorldToScreen(Xw, 0, maxZ, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
+
+            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
+                this.drawLineScaled(ctx, p1, p2, scaleFactor);
+            }
+        }
+
+        // Horizontal Lines (Z-axis)
+        for (let Zw = firstZ; Zw <= maxZ + gridSize; Zw += gridSize) {
+            const p1 = this.projectWorldToScreen(minX, 0, Zw, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
+
+            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
+                this.drawLineScaled(ctx, p1, p2, scaleFactor);
+            }
+        }
+    }
+
+    // Note: drawLineScaled is kept as an alias for renderToCanvas compatibility
+    private drawLineScaled(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2, scaleFactor: number) {
+        this.drawLine(ctx, p1, p2, scaleFactor);
+    }
+
+    get widthInCells(): number {
+        return this.settings.widthInCells;
+    }
+
+    get heightInCells(): number {
+        return this.settings.heightInCells;
+    }
+
+    get gridCenter(): vec2 {
+        // The grid is centered on the camera, so we use the camera position
+        // This will be calculated when we have access to the camera
+        return [0, 0];
     }
 }

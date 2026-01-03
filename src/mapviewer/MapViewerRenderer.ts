@@ -222,4 +222,64 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
 
         // this.mapViewer.debugText = `Frame Time Js: ${this.stats.frameTimeJs.toFixed(3)}`;
     }
+
+    /**
+     * Renders a single frame at a specific resolution for export.
+     * Temporarily modifies canvas size and camera, renders, captures the result,
+     * then restores state.
+     * @param targetWidth Target canvas width in pixels
+     * @param targetHeight Target canvas height in pixels
+     * @param orthoZoom Camera orthoZoom value for the export
+     * @returns Promise with ImageBitmap of the rendered frame
+     */
+    async renderForExport(
+        targetWidth: number,
+        targetHeight: number,
+        orthoZoom: number,
+    ): Promise<ImageBitmap> {
+        // Save current state
+        const originalWidth = this.canvas.width;
+        const originalHeight = this.canvas.height;
+        const originalOverlayWidth = this.overlayCanvas.width;
+        const originalOverlayHeight = this.overlayCanvas.height;
+        const originalOrthoZoom = this.mapViewer.camera.orthoZoom;
+
+        // Save grid state (settings and maxGridSize get modified during render via onFrameEnd -> draw)
+        const originalGridSettings = { ...this.gridRenderer.getSettings() };
+        const originalMaxGridSize = { ...this.gridRenderer.getMaxGridSize() };
+
+        // Temporarily resize BOTH canvases (overlay must match or grid settings get corrupted)
+        this.canvas.width = targetWidth;
+        this.canvas.height = targetHeight;
+        this.overlayCanvas.width = targetWidth;
+        this.overlayCanvas.height = targetHeight;
+        this.onResize(targetWidth, targetHeight);
+
+        // Temporarily adjust camera
+        this.mapViewer.camera.orthoZoom = orthoZoom;
+        this.mapViewer.camera.updated = true;
+        this.mapViewer.camera.update(targetWidth, targetHeight);
+
+        // Render a single frame
+        const time = performance.now();
+        this.render(time, 0, true);
+
+        // Capture the rendered frame before restoring
+        const bitmap = await createImageBitmap(this.canvas);
+
+        // Restore original state
+        this.canvas.width = originalWidth;
+        this.canvas.height = originalHeight;
+        this.overlayCanvas.width = originalOverlayWidth;
+        this.overlayCanvas.height = originalOverlayHeight;
+        this.onResize(originalWidth, originalHeight);
+        this.mapViewer.camera.orthoZoom = originalOrthoZoom;
+        this.mapViewer.camera.updated = true;
+        this.mapViewer.camera.update(originalWidth, originalHeight);
+
+        // Restore grid state without side effects
+        this.gridRenderer.restoreState(originalGridSettings, originalMaxGridSize);
+
+        return bitmap;
+    }
 }

@@ -26,6 +26,8 @@ import { NpcSpawn } from "./data/npc/NpcSpawn";
 import { ObjSpawn } from "./data/obj/ObjSpawn";
 import { RenderDataWorkerPool } from "./worker/RenderDataWorkerPool";
 
+export type ExportResolution = 64 | 128 | 256;
+
 const DEFAULT_RENDER_DISTANCE = isWallpaperEngine ? 512 : 128;
 const DEFAULT_ORTHO_ZOOM = 70;
 
@@ -355,47 +357,58 @@ export class MapViewer {
         this.loadingMapImageIds.clear();
     }
 
-    async exportBattlemap(): Promise<Blob | null> {
-        const mapCanvas = this.renderer.canvas;
-        const overlayCanvas = this.renderer.overlayCanvas;
-        const selectedGridBounds = this.renderer.gridRenderer.getSelectedGridBounds(
-            overlayCanvas,
-            this.camera,
+    async exportBattlemap(resolution: ExportResolution = 128): Promise<Blob | null> {
+        const gridRenderer = this.renderer.gridRenderer;
+        const gridWidthInCells = gridRenderer.widthInCells;
+        const gridHeightInCells = gridRenderer.heightInCells;
+
+        // Calculate target dimensions based on resolution
+        const targetWidth = gridWidthInCells * resolution;
+        const targetHeight = gridHeightInCells * resolution;
+
+        // Calculate orthoZoom for the target resolution
+        // Formula: cellSizePx = orthoZoom / 2, so orthoZoom = resolution * 2
+        const targetOrthoZoom = resolution * 2;
+
+        // Render the scene at the target resolution and get the bitmap
+        const mapBitmap = await this.renderer.renderForExport(
+            targetWidth,
+            targetHeight,
+            targetOrthoZoom,
         );
 
+        // Create the final export canvas
         const exportCanvas = document.createElement("canvas");
-        exportCanvas.width = selectedGridBounds.width;
-        exportCanvas.height = selectedGridBounds.height;
+        exportCanvas.width = targetWidth;
+        exportCanvas.height = targetHeight;
         const ctx = exportCanvas.getContext("2d");
+        if (!ctx) return null;
 
-        const mapBitmap = await createImageBitmap(mapCanvas);
-        ctx!.drawImage(
-            mapBitmap,
-            // Source coords
-            selectedGridBounds.topLeft[0],
-            selectedGridBounds.topLeft[1],
-            selectedGridBounds.width,
-            selectedGridBounds.height,
-            // Destination coords
-            0,
-            0,
-            selectedGridBounds.width,
-            selectedGridBounds.height,
-        );
+        // Draw the rendered scene to the export canvas
+        ctx.drawImage(mapBitmap, 0, 0, targetWidth, targetHeight);
 
-        ctx!.drawImage(
-            overlayCanvas,
-            // Source coords
-            selectedGridBounds.topLeft[0],
-            selectedGridBounds.topLeft[1],
-            selectedGridBounds.width,
-            selectedGridBounds.height,
-            // Destination coords
-            0,
-            0,
-            selectedGridBounds.width,
-            selectedGridBounds.height,
-        );
+        // Create a temporary canvas for the grid overlay
+        const gridCanvas = document.createElement("canvas");
+        gridCanvas.width = targetWidth;
+        gridCanvas.height = targetHeight;
+
+        // Calculate scale factor for line widths (base is 64px per cell)
+        const scaleFactor = resolution / 64;
+
+        // Temporarily update camera for grid rendering
+        const originalOrthoZoom = this.camera.orthoZoom;
+        this.camera.orthoZoom = targetOrthoZoom;
+        this.camera.update(targetWidth, targetHeight);
+
+        // Render the grid at the export resolution
+        gridRenderer.renderToCanvas(gridCanvas, this.camera, scaleFactor);
+
+        // Restore camera
+        this.camera.orthoZoom = originalOrthoZoom;
+        this.camera.update(this.renderer.canvas.width, this.renderer.canvas.height);
+
+        // Composite the grid overlay onto the export canvas
+        ctx.drawImage(gridCanvas, 0, 0);
 
         return await new Promise((resolve) => exportCanvas.toBlob(resolve, "image/png"));
     }
