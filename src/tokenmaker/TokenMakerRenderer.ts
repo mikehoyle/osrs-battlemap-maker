@@ -13,6 +13,8 @@ import tokenVertShader from "./shaders/token.vert.glsl";
 import tokenFragShader from "./shaders/token.frag.glsl";
 import tokenHdVertShader from "./shaders/token-hd.vert.glsl";
 import tokenHdFragShader from "./shaders/token-hd.frag.glsl";
+import tokenShadowVertShader from "./shaders/token-shadow.vert.glsl";
+import tokenShadowFragShader from "./shaders/token-shadow.frag.glsl";
 
 const TEXTURE_SIZE = 128;
 const MAX_TEXTURES = 512;
@@ -27,6 +29,7 @@ export class TokenMakerRenderer {
 
     program?: Program;
     hdProgram?: Program;
+    shadowProgram?: Program;
     textureArray?: Texture;
 
     // Cached model data
@@ -56,6 +59,9 @@ export class TokenMakerRenderer {
     currentTextureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
     currentSmoothModel: boolean = false;
 
+    // Model ground level (minimum Y for shadow projection)
+    modelGroundLevel: number = 0;
+
     constructor(canvas: HTMLCanvasElement, tokenMaker: TokenMaker, overlayCanvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.overlayCanvas = overlayCanvas;
@@ -72,6 +78,7 @@ export class TokenMakerRenderer {
         // Create shader programs
         this.program = this.app.createProgram(tokenVertShader, tokenFragShader);
         this.hdProgram = this.app.createProgram(tokenHdVertShader, tokenHdFragShader);
+        this.shadowProgram = this.app.createProgram(tokenShadowVertShader, tokenShadowFragShader);
 
         // Initialize texture array
         await this.initTextures();
@@ -217,17 +224,23 @@ export class TokenMakerRenderer {
 
     calculateModelSize(model: Model): number {
         const verticesX = model.verticesX;
+        const verticesY = model.verticesY;
         const verticesZ = model.verticesZ;
 
         let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity;
         let minZ = Infinity, maxZ = -Infinity;
 
         for (let i = 0; i < model.verticesCount; i++) {
             minX = Math.min(minX, verticesX[i]);
             maxX = Math.max(maxX, verticesX[i]);
+            minY = Math.min(minY, verticesY[i]);
             minZ = Math.min(minZ, verticesZ[i]);
             maxZ = Math.max(maxZ, verticesZ[i]);
         }
+
+        // Store ground level for shadow projection (Y is negated in vertex shader)
+        this.modelGroundLevel = -minY / 128.0;
 
         const modelWidth = maxX - minX;
         const modelDepth = maxZ - minZ;
@@ -603,7 +616,7 @@ export class TokenMakerRenderer {
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        if (this.indexCount === 0 || !this.program || !this.hdProgram || !this.vao || !this.textureArray) {
+        if (this.indexCount === 0 || !this.program || !this.hdProgram || !this.shadowProgram || !this.vao || !this.textureArray) {
             return;
         }
 
@@ -611,6 +624,34 @@ export class TokenMakerRenderer {
         gl.enable(gl.DEPTH_TEST);
         // Disable culling for now - top-down view might see "back" faces
         gl.disable(gl.CULL_FACE);
+
+        // Render shadow pass first (if enabled)
+        if (tokenMaker.shadowEnabled) {
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+            gl.useProgram(this.shadowProgram.program);
+
+            const shadowProjLoc = gl.getUniformLocation(this.shadowProgram.program, "u_projectionMatrix");
+            const shadowViewLoc = gl.getUniformLocation(this.shadowProgram.program, "u_viewMatrix");
+            const groundLevelLoc = gl.getUniformLocation(this.shadowProgram.program, "u_groundLevel");
+            const lightDirLoc = gl.getUniformLocation(this.shadowProgram.program, "u_lightDirection");
+            const shadowOpacityLoc = gl.getUniformLocation(this.shadowProgram.program, "u_shadowOpacity");
+
+            gl.uniformMatrix4fv(shadowProjLoc, false, this.projectionMatrix);
+            gl.uniformMatrix4fv(shadowViewLoc, false, this.viewMatrix);
+            gl.uniform1f(groundLevelLoc, this.modelGroundLevel);
+            gl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            gl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
+
+            gl.bindVertexArray(this.vao);
+            gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_INT, 0);
+            gl.bindVertexArray(null);
+
+            // Clear depth buffer so model renders on top of shadow
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+            gl.disable(gl.BLEND);
+        }
 
         // Choose program based on HD setting
         const activeProgram = tokenMaker.hdEnabled ? this.hdProgram : this.program;
@@ -735,6 +776,9 @@ export class TokenMakerRenderer {
         const offscreenProgram = tokenMaker.hdEnabled
             ? offscreenApp.createProgram(tokenHdVertShader, tokenHdFragShader)
             : offscreenApp.createProgram(tokenVertShader, tokenFragShader);
+
+        // Create shadow program for offscreen rendering
+        const offscreenShadowProgram = offscreenApp.createProgram(tokenShadowVertShader, tokenShadowFragShader);
 
         // Get model
         const model = tokenMaker.getModel();
@@ -913,12 +957,14 @@ export class TokenMakerRenderer {
 
         offscreenGl.bindVertexArray(null);
 
-        // Calculate model bounds for camera
+        // Calculate model bounds for camera and shadow ground level
         let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity;
         let minZ = Infinity, maxZ = -Infinity;
         for (let i = 0; i < model.verticesCount; i++) {
             minX = Math.min(minX, verticesX[i]);
             maxX = Math.max(maxX, verticesX[i]);
+            minY = Math.min(minY, verticesY[i]);
             minZ = Math.min(minZ, verticesZ[i]);
             maxZ = Math.max(maxZ, verticesZ[i]);
         }
@@ -926,6 +972,7 @@ export class TokenMakerRenderer {
         const modelDepth = maxZ - minZ;
         const modelSize = Math.max(modelWidth, modelDepth);
         const zoom = (modelSize / 128) * 0.65;
+        const groundLevel = -minY / 128.0;
 
         // Set up camera
         const projectionMatrix = mat4.create();
@@ -942,6 +989,39 @@ export class TokenMakerRenderer {
         offscreenGl.enable(offscreenGl.DEPTH_TEST);
         // Disable culling - top-down view might see "back" faces
         offscreenGl.disable(offscreenGl.CULL_FACE);
+
+        // Render shadow pass first (if enabled)
+        let shadowPixels: Uint8Array | null = null;
+        if (tokenMaker.shadowEnabled) {
+            offscreenGl.enable(offscreenGl.BLEND);
+            offscreenGl.blendFunc(offscreenGl.SRC_ALPHA, offscreenGl.ONE_MINUS_SRC_ALPHA);
+
+            offscreenGl.useProgram(offscreenShadowProgram.program);
+
+            const shadowProjLoc = offscreenGl.getUniformLocation(offscreenShadowProgram.program, "u_projectionMatrix");
+            const shadowViewLoc = offscreenGl.getUniformLocation(offscreenShadowProgram.program, "u_viewMatrix");
+            const groundLevelLoc = offscreenGl.getUniformLocation(offscreenShadowProgram.program, "u_groundLevel");
+            const lightDirLoc = offscreenGl.getUniformLocation(offscreenShadowProgram.program, "u_lightDirection");
+            const shadowOpacityLoc = offscreenGl.getUniformLocation(offscreenShadowProgram.program, "u_shadowOpacity");
+
+            offscreenGl.uniformMatrix4fv(shadowProjLoc, false, projectionMatrix);
+            offscreenGl.uniformMatrix4fv(shadowViewLoc, false, viewMatrix);
+            offscreenGl.uniform1f(groundLevelLoc, groundLevel);
+            offscreenGl.uniform3f(lightDirLoc, -0.4, 0.8, 0.4);
+            offscreenGl.uniform1f(shadowOpacityLoc, tokenMaker.shadowOpacity);
+
+            offscreenGl.bindVertexArray(vao);
+            offscreenGl.drawElements(offscreenGl.TRIANGLES, indices.length, offscreenGl.UNSIGNED_INT, 0);
+            offscreenGl.bindVertexArray(null);
+
+            // Read shadow pixels
+            shadowPixels = new Uint8Array(resolution * resolution * 4);
+            offscreenGl.readPixels(0, 0, resolution, resolution, offscreenGl.RGBA, offscreenGl.UNSIGNED_BYTE, shadowPixels);
+
+            // Clear for model render
+            offscreenGl.clear(offscreenGl.COLOR_BUFFER_BIT | offscreenGl.DEPTH_BUFFER_BIT);
+            offscreenGl.disable(offscreenGl.BLEND);
+        }
 
         // Use program and set uniforms
         offscreenGl.useProgram(offscreenProgram.program);
@@ -1040,6 +1120,28 @@ export class TokenMakerRenderer {
             maskCtx.beginPath();
             maskCtx.arc(resolution / 2, resolution / 2, innerRadius, 0, Math.PI * 2);
             maskCtx.fill();
+        }
+
+        // Draw shadow behind everything (shadow extends beyond circle)
+        if (shadowPixels) {
+            const shadowCanvas = document.createElement("canvas");
+            shadowCanvas.width = resolution;
+            shadowCanvas.height = resolution;
+            const shadowCtx = shadowCanvas.getContext("2d")!;
+            const shadowImageData = shadowCtx.createImageData(resolution, resolution);
+            for (let y = 0; y < resolution; y++) {
+                for (let x = 0; x < resolution; x++) {
+                    const srcIdx = ((resolution - 1 - y) * resolution + x) * 4;
+                    const dstIdx = (y * resolution + x) * 4;
+                    shadowImageData.data[dstIdx] = shadowPixels[srcIdx];
+                    shadowImageData.data[dstIdx + 1] = shadowPixels[srcIdx + 1];
+                    shadowImageData.data[dstIdx + 2] = shadowPixels[srcIdx + 2];
+                    shadowImageData.data[dstIdx + 3] = shadowPixels[srcIdx + 3];
+                }
+            }
+            shadowCtx.putImageData(shadowImageData, 0, 0);
+            maskCtx.globalCompositeOperation = "destination-over";
+            maskCtx.drawImage(shadowCanvas, 0, 0);
         }
 
         // Draw border on top

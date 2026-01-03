@@ -90,6 +90,10 @@ export class TokenMaker {
     textureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
     smoothModel: boolean = false;
 
+    // Shadow settings
+    shadowEnabled: boolean = true;
+    shadowOpacity: number = 0.5; // 0.2 - 0.8 range
+
     // Event callbacks
     onStateChange?: () => void;
 
@@ -317,6 +321,16 @@ export class TokenMaker {
 
     setSmoothModel(enabled: boolean): void {
         this.smoothModel = enabled;
+        this.onStateChange?.();
+    }
+
+    setShadowEnabled(enabled: boolean): void {
+        this.shadowEnabled = enabled;
+        this.onStateChange?.();
+    }
+
+    setShadowOpacity(opacity: number): void {
+        this.shadowOpacity = Math.max(0.2, Math.min(opacity, 0.8));
         this.onStateChange?.();
     }
 

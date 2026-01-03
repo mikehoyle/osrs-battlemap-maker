@@ -162,6 +162,8 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         brightness={tokenMaker.brightness}
                         textureFilterMode={tokenMaker.textureFilterMode}
                         smoothModel={tokenMaker.smoothModel}
+                        shadowEnabled={tokenMaker.shadowEnabled}
+                        shadowOpacity={tokenMaker.shadowOpacity}
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
                         onBorderColorChange={(c) => tokenMaker.setBorderColor(c)}
                         onBorderWidthChange={(w) => tokenMaker.setBorderWidth(w)}
@@ -172,6 +174,8 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         onBrightnessChange={(b) => tokenMaker.setBrightness(b)}
                         onTextureFilterChange={(m) => tokenMaker.setTextureFilterMode(m)}
                         onSmoothModelChange={(s) => tokenMaker.setSmoothModel(s)}
+                        onShadowEnabledChange={(e) => tokenMaker.setShadowEnabled(e)}
+                        onShadowOpacityChange={(o) => tokenMaker.setShadowOpacity(o)}
                         onExport={handleExport}
                         canExport={tokenMaker.selectedNpcId !== null}
                     />

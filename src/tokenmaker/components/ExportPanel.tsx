@@ -13,6 +13,8 @@ interface ExportPanelProps {
     brightness: number;
     textureFilterMode: TextureFilterMode;
     smoothModel: boolean;
+    shadowEnabled: boolean;
+    shadowOpacity: number;
     onResolutionChange: (resolution: ExportResolution) => void;
     onBorderColorChange: (color: string) => void;
     onBorderWidthChange: (width: number) => void;
@@ -23,6 +25,8 @@ interface ExportPanelProps {
     onBrightnessChange: (value: number) => void;
     onTextureFilterChange: (mode: TextureFilterMode) => void;
     onSmoothModelChange: (enabled: boolean) => void;
+    onShadowEnabledChange: (enabled: boolean) => void;
+    onShadowOpacityChange: (opacity: number) => void;
     onExport: () => void;
     canExport: boolean;
 }
@@ -60,6 +64,8 @@ export function ExportPanel({
     brightness,
     textureFilterMode,
     smoothModel,
+    shadowEnabled,
+    shadowOpacity,
     onResolutionChange,
     onBorderColorChange,
     onBorderWidthChange,
@@ -70,6 +76,8 @@ export function ExportPanel({
     onBrightnessChange,
     onTextureFilterChange,
     onSmoothModelChange,
+    onShadowEnabledChange,
+    onShadowOpacityChange,
     onExport,
     canExport,
 }: ExportPanelProps): JSX.Element {
@@ -113,6 +121,13 @@ export function ExportPanel({
             onTextureFilterChange(parseInt(e.target.value) as TextureFilterMode);
         },
         [onTextureFilterChange],
+    );
+
+    const handleShadowOpacityChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            onShadowOpacityChange(parseInt(e.target.value) / 100);
+        },
+        [onShadowOpacityChange],
     );
 
     return (
@@ -267,6 +282,36 @@ export function ExportPanel({
                     </span>
                 </label>
             </div>
+
+            <div className="control-row">
+                <label className="control-label">Shadow</label>
+                <label className="hd-toggle">
+                    <input
+                        type="checkbox"
+                        checked={shadowEnabled}
+                        onChange={(e) => onShadowEnabledChange(e.target.checked)}
+                    />
+                    <span className="hd-toggle-label">
+                        Enable shadow
+                    </span>
+                </label>
+            </div>
+
+            {shadowEnabled && (
+                <div className="control-row">
+                    <label className="control-label">Opacity</label>
+                    <input
+                        type="range"
+                        className="control-slider"
+                        min={20}
+                        max={80}
+                        step={5}
+                        value={Math.round(shadowOpacity * 100)}
+                        onChange={handleShadowOpacityChange}
+                    />
+                    <span className="width-value">{Math.round(shadowOpacity * 100)}%</span>
+                </div>
+            )}
 
             <div className="control-row export-button-row">
                 <button
