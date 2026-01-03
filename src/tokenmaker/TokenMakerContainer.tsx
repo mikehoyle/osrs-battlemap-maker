@@ -13,6 +13,7 @@ interface TokenMakerContainerProps {
 
 export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): JSX.Element {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<TokenMakerRenderer | null>(null);
     const [, forceUpdate] = useState({});
 
@@ -27,9 +28,10 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
     // Initialize renderer
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        const overlayCanvas = overlayCanvasRef.current;
+        if (!canvas || !overlayCanvas) return;
 
-        const renderer = new TokenMakerRenderer(canvas, tokenMaker);
+        const renderer = new TokenMakerRenderer(canvas, tokenMaker, overlayCanvas);
         renderer.init();
         renderer.start();
         rendererRef.current = renderer;
@@ -109,6 +111,7 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                 <div className="token-maker-preview">
                     <div className="preview-canvas-container rs-border">
                         <canvas ref={canvasRef} className="preview-canvas" />
+                        <canvas ref={overlayCanvasRef} className="preview-canvas-overlay" />
                     </div>
                     <div className="preview-info content-text">
                         {tokenMaker.selectedNpcId !== null ? (
@@ -152,6 +155,9 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         resolution={tokenMaker.exportResolution}
                         borderColor={tokenMaker.borderColor}
                         borderWidth={tokenMaker.borderWidth}
+                        baseFilled={tokenMaker.baseFilled}
+                        baseFillColor={tokenMaker.baseFillColor}
+                        baseScale={tokenMaker.baseScale}
                         hdEnabled={tokenMaker.hdEnabled}
                         brightness={tokenMaker.brightness}
                         textureFilterMode={tokenMaker.textureFilterMode}
@@ -159,6 +165,9 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         onResolutionChange={(r) => tokenMaker.setExportResolution(r)}
                         onBorderColorChange={(c) => tokenMaker.setBorderColor(c)}
                         onBorderWidthChange={(w) => tokenMaker.setBorderWidth(w)}
+                        onBaseFilledChange={(f) => tokenMaker.setBaseFilled(f)}
+                        onBaseFillColorChange={(c) => tokenMaker.setBaseFillColor(c)}
+                        onBaseScaleChange={(s) => tokenMaker.setBaseScale(s)}
                         onHdChange={(h) => tokenMaker.setHdEnabled(h)}
                         onBrightnessChange={(b) => tokenMaker.setBrightness(b)}
                         onTextureFilterChange={(m) => tokenMaker.setTextureFilterMode(m)}

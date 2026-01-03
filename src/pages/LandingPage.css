@@ -51,3 +51,22 @@
 .landing-button:active {
     transform: scale(0.98);
 }
+
+.landing-footer {
+    position: absolute;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.landing-footer-link {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 0.875rem;
+    color: #999;
+    text-decoration: none;
+}
+
+.landing-footer-link:hover {
+    color: #ff981f;
+}

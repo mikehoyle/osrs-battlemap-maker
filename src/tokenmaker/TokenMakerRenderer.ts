@@ -19,6 +19,7 @@ const MAX_TEXTURES = 512;
 
 export class TokenMakerRenderer {
     canvas: HTMLCanvasElement;
+    overlayCanvas: HTMLCanvasElement;
     tokenMaker: TokenMaker;
 
     app!: PicoApp;
@@ -55,8 +56,9 @@ export class TokenMakerRenderer {
     currentTextureFilterMode: TextureFilterMode = TextureFilterMode.ANISOTROPIC_16X;
     currentSmoothModel: boolean = false;
 
-    constructor(canvas: HTMLCanvasElement, tokenMaker: TokenMaker) {
+    constructor(canvas: HTMLCanvasElement, tokenMaker: TokenMaker, overlayCanvas: HTMLCanvasElement) {
         this.canvas = canvas;
+        this.overlayCanvas = overlayCanvas;
         this.tokenMaker = tokenMaker;
     }
 
@@ -196,7 +198,8 @@ export class TokenMakerRenderer {
 
         // Orthographic projection looking down
         // Adjust zoom based on model size (default to reasonable size if unknown)
-        const zoom = modelSize ? (modelSize / 128) * 1.5 : 3;
+        // Lower multiplier = larger token in frame (0.65 fills ~70-75% of frame)
+        const zoom = modelSize ? (modelSize / 128) * 0.65 : 1.5;
         mat4.ortho(
             this.projectionMatrix,
             -zoom * aspect,
@@ -595,9 +598,9 @@ export class TokenMakerRenderer {
             }
         }
 
-        // Clear
+        // Clear with transparent background so underlay shows through
         gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        gl.clearColor(0.1, 0.1, 0.1, 1.0);
+        gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         if (this.indexCount === 0 || !this.program || !this.hdProgram || !this.vao || !this.textureArray) {
@@ -654,6 +657,62 @@ export class TokenMakerRenderer {
         gl.bindVertexArray(this.vao);
         gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_INT, 0);
         gl.bindVertexArray(null);
+
+        // Render the base circle overlay
+        this.renderBaseOverlay();
+    }
+
+    renderBaseOverlay(): void {
+        const tokenMaker = this.tokenMaker;
+        const overlayCanvas = this.overlayCanvas;
+
+        // Resize overlay canvas to match main canvas
+        const displayWidth = Math.max(this.canvas.clientWidth, 1);
+        const displayHeight = Math.max(this.canvas.clientHeight, 1);
+        if (overlayCanvas.width !== displayWidth || overlayCanvas.height !== displayHeight) {
+            overlayCanvas.width = displayWidth;
+            overlayCanvas.height = displayHeight;
+        }
+
+        const ctx = overlayCanvas.getContext("2d");
+        if (!ctx) return;
+
+        // Clear the overlay
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+        // Only draw if we have an NPC selected
+        if (tokenMaker.selectedNpcId === null) {
+            return;
+        }
+
+        const size = Math.min(overlayCanvas.width, overlayCanvas.height);
+        const centerX = overlayCanvas.width / 2;
+        const centerY = overlayCanvas.height / 2;
+
+        const borderWidth = tokenMaker.borderWidth;
+        const baseScale = tokenMaker.baseScale;
+        const baseFilled = tokenMaker.baseFilled;
+        const baseFillColor = tokenMaker.baseFillColor;
+        const borderColor = tokenMaker.borderColor;
+
+        // Calculate radius based on baseScale
+        const baseRadius = (size / 2) * baseScale;
+        const innerRadius = baseRadius - borderWidth;
+
+        // Draw solid filled circle if enabled (this is behind the model)
+        if (baseFilled) {
+            ctx.fillStyle = baseFillColor;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw border
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = borderWidth;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, baseRadius - borderWidth / 2, 0, Math.PI * 2);
+        ctx.stroke();
     }
 
     async exportToken(): Promise<Blob | null> {
@@ -866,7 +925,7 @@ export class TokenMakerRenderer {
         const modelWidth = maxX - minX;
         const modelDepth = maxZ - minZ;
         const modelSize = Math.max(modelWidth, modelDepth);
-        const zoom = (modelSize / 128) * 1.5;
+        const zoom = (modelSize / 128) * 0.65;
 
         // Set up camera
         const projectionMatrix = mat4.create();
@@ -954,7 +1013,13 @@ export class TokenMakerRenderer {
         // Apply circular mask with border
         const borderWidth = tokenMaker.borderWidth;
         const borderColor = tokenMaker.borderColor;
-        const innerRadius = resolution / 2 - borderWidth;
+        const baseFillColor = tokenMaker.baseFillColor;
+        const baseScale = tokenMaker.baseScale;
+        const baseFilled = tokenMaker.baseFilled;
+
+        // Calculate radius based on baseScale
+        const baseRadius = (resolution / 2) * baseScale;
+        const innerRadius = baseRadius - borderWidth;
 
         // Apply circular mask
         const maskCanvas = document.createElement("canvas");
@@ -968,12 +1033,21 @@ export class TokenMakerRenderer {
         maskCtx.arc(resolution / 2, resolution / 2, innerRadius, 0, Math.PI * 2);
         maskCtx.fill();
 
-        // Draw border
+        // Draw solid filled base circle behind the model if enabled
+        maskCtx.globalCompositeOperation = "destination-over";
+        if (baseFilled) {
+            maskCtx.fillStyle = baseFillColor;
+            maskCtx.beginPath();
+            maskCtx.arc(resolution / 2, resolution / 2, innerRadius, 0, Math.PI * 2);
+            maskCtx.fill();
+        }
+
+        // Draw border on top
         maskCtx.globalCompositeOperation = "source-over";
         maskCtx.strokeStyle = borderColor;
         maskCtx.lineWidth = borderWidth;
         maskCtx.beginPath();
-        maskCtx.arc(resolution / 2, resolution / 2, resolution / 2 - borderWidth / 2, 0, Math.PI * 2);
+        maskCtx.arc(resolution / 2, resolution / 2, baseRadius - borderWidth / 2, 0, Math.PI * 2);
         maskCtx.stroke();
 
         // Clean up

@@ -80,6 +80,9 @@ export class TokenMaker {
     exportResolution: ExportResolution = 128;
     borderColor: string = "#ff981f";
     borderWidth: number = 4;
+    baseFilled: boolean = true;
+    baseFillColor: string = "#888888";
+    baseScale: number = 0.8;
     hdEnabled: boolean = false;
 
     // Renderer settings
@@ -168,9 +171,18 @@ export class TokenMaker {
             if (id !== -1) {
                 const seqType = this.seqTypeLoader.load(id);
                 if (seqType) {
-                    const frameCount = seqType.isSkeletalSeq()
-                        ? Math.floor(seqType.skeletalEnd - seqType.skeletalStart)
-                        : seqType.frameIds?.length ?? 0;
+                    let frameCount: number;
+                    if (seqType.isSkeletalSeq()) {
+                        frameCount = Math.floor(seqType.skeletalEnd - seqType.skeletalStart);
+                        if (frameCount === 0 && this.skeletalSeqLoader) {
+                            const skeletalSeq = this.skeletalSeqLoader.load(seqType.skeletalId);
+                            if (skeletalSeq) {
+                                frameCount = skeletalSeq.getDuration();
+                            }
+                        }
+                    } else {
+                        frameCount = seqType.frameIds?.length ?? 0;
+                    }
                     animations.push({ id, name, frameCount });
                 }
             }
@@ -203,7 +215,14 @@ export class TokenMaker {
             return 0;
         }
         if (seqType.isSkeletalSeq()) {
-            return Math.floor(seqType.skeletalEnd - seqType.skeletalStart);
+            let frameCount = Math.floor(seqType.skeletalEnd - seqType.skeletalStart);
+            if (frameCount === 0 && this.skeletalSeqLoader) {
+                const skeletalSeq = this.skeletalSeqLoader.load(seqType.skeletalId);
+                if (skeletalSeq) {
+                    frameCount = skeletalSeq.getDuration();
+                }
+            }
+            return frameCount;
         }
         return seqType.frameIds?.length ?? 0;
     }
@@ -263,6 +282,21 @@ export class TokenMaker {
 
     setBorderWidth(width: number): void {
         this.borderWidth = Math.max(1, Math.min(width, 16));
+        this.onStateChange?.();
+    }
+
+    setBaseFilled(filled: boolean): void {
+        this.baseFilled = filled;
+        this.onStateChange?.();
+    }
+
+    setBaseFillColor(color: string): void {
+        this.baseFillColor = color;
+        this.onStateChange?.();
+    }
+
+    setBaseScale(scale: number): void {
+        this.baseScale = Math.max(0.3, Math.min(scale, 1.0));
         this.onStateChange?.();
     }
 

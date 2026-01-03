@@ -6,6 +6,9 @@ interface ExportPanelProps {
     resolution: ExportResolution;
     borderColor: string;
     borderWidth: number;
+    baseFilled: boolean;
+    baseFillColor: string;
+    baseScale: number;
     hdEnabled: boolean;
     brightness: number;
     textureFilterMode: TextureFilterMode;
@@ -13,6 +16,9 @@ interface ExportPanelProps {
     onResolutionChange: (resolution: ExportResolution) => void;
     onBorderColorChange: (color: string) => void;
     onBorderWidthChange: (width: number) => void;
+    onBaseFilledChange: (filled: boolean) => void;
+    onBaseFillColorChange: (color: string) => void;
+    onBaseScaleChange: (scale: number) => void;
     onHdChange: (enabled: boolean) => void;
     onBrightnessChange: (value: number) => void;
     onTextureFilterChange: (mode: TextureFilterMode) => void;
@@ -47,6 +53,9 @@ export function ExportPanel({
     resolution,
     borderColor,
     borderWidth,
+    baseFilled,
+    baseFillColor,
+    baseScale,
     hdEnabled,
     brightness,
     textureFilterMode,
@@ -54,6 +63,9 @@ export function ExportPanel({
     onResolutionChange,
     onBorderColorChange,
     onBorderWidthChange,
+    onBaseFilledChange,
+    onBaseFillColorChange,
+    onBaseScaleChange,
     onHdChange,
     onBrightnessChange,
     onTextureFilterChange,
@@ -66,6 +78,20 @@ export function ExportPanel({
             onBorderWidthChange(parseInt(e.target.value));
         },
         [onBorderWidthChange],
+    );
+
+    const handleBaseScaleChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            onBaseScaleChange(parseInt(e.target.value) / 100);
+        },
+        [onBaseScaleChange],
+    );
+
+    const handleFillColorChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            onBaseFillColorChange(e.target.value);
+        },
+        [onBaseFillColorChange],
     );
 
     const handleColorChange = useCallback(
@@ -156,6 +182,46 @@ export function ExportPanel({
                 />
                 <span className="width-value">{borderWidth}px</span>
             </div>
+
+            <div className="control-row">
+                <label className="control-label">Base Size</label>
+                <input
+                    type="range"
+                    className="control-slider"
+                    min={30}
+                    max={100}
+                    value={Math.round(baseScale * 100)}
+                    onChange={handleBaseScaleChange}
+                />
+                <span className="width-value">{Math.round(baseScale * 100)}%</span>
+            </div>
+
+            <div className="control-row">
+                <label className="control-label">Filled</label>
+                <label className="hd-toggle">
+                    <input
+                        type="checkbox"
+                        checked={baseFilled}
+                        onChange={(e) => onBaseFilledChange(e.target.checked)}
+                    />
+                    <span className="hd-toggle-label">
+                        Fill base circle
+                    </span>
+                </label>
+            </div>
+
+            {baseFilled && (
+                <div className="control-row">
+                    <label className="control-label">Fill Color</label>
+                    <input
+                        type="color"
+                        className="color-input fill-color-input"
+                        value={baseFillColor}
+                        onChange={handleFillColorChange}
+                        title="Base fill color"
+                    />
+                </div>
+            )}
 
             <h3 className="control-panel-title section-title">Render Settings</h3>
 

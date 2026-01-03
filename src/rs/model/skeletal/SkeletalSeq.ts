@@ -200,4 +200,30 @@ export class SkeletalSeq {
         matrix[13] = transY;
         matrix[14] = transZ;
     }
+
+    getDuration(): number {
+        let maxEndTick = 0;
+
+        for (const curves of this.boneCurves) {
+            if (curves) {
+                for (const curve of curves) {
+                    if (curve && curve.endTick > maxEndTick) {
+                        maxEndTick = curve.endTick;
+                    }
+                }
+            }
+        }
+
+        for (const curves of this.curves) {
+            if (curves) {
+                for (const curve of curves) {
+                    if (curve && curve.endTick > maxEndTick) {
+                        maxEndTick = curve.endTick;
+                    }
+                }
+            }
+        }
+
+        return maxEndTick;
+    }
 }

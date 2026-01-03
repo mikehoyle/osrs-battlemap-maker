@@ -15,6 +15,11 @@ export function LandingPage() {
                     </Link>
                 </div>
             </div>
+            <footer className="landing-footer">
+                <Link to="/legal" className="landing-footer-link">
+                    Legal
+                </Link>
+            </footer>
         </div>
     );
 }

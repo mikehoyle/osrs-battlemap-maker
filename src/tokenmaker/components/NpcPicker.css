@@ -28,7 +28,7 @@
 .selected-npc-id,
 .selected-npc-combat {
     font-family: "OSRS Small", sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     color: #999;
 }
 
@@ -66,18 +66,18 @@
     font-family: "OSRS Small", sans-serif;
     color: #fff;
     flex: 1;
-    font-size: 0.875rem;
+    font-size: 1rem;
 }
 
 .npc-id {
     font-family: "OSRS Small", sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     color: #666;
 }
 
 .npc-combat {
     font-family: "OSRS Small", sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     color: #c9aa71;
 }
 
@@ -86,6 +86,6 @@
     text-align: center;
     color: #666;
     font-family: "OSRS Small", sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     font-style: italic;
 }
