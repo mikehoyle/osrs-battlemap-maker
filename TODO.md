@@ -1,9 +1,7 @@
 # Main stuff
 
 -   Remove controller/joystick controls?
--   Add personal-use disclaimer mumbo jumbo to legal
 -   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
--   Figure out why it seems like some animations are missing?
 -   Better organized controls?
 -   Places of Interest
     - categorization
@@ -21,6 +19,8 @@
 
 # Done!
 
+-   Add personal-use disclaimer mumbo jumbo to legal
+-   Figure out why it seems like some animations are missing?
 -   Add grid options to query params (maybe local storage too?)
 -   Remove perspective camera setting (and camera settings entirely probably)
 -   Click and drag moves map
