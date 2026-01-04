@@ -72,6 +72,9 @@ export class SeqType extends Type {
 
     op14: boolean;
 
+    // Animation name (available in OSRS revision 230+)
+    name?: string;
+
     constructor(id: number, cacheInfo: CacheInfo) {
         super(id, cacheInfo);
         this.frameStep = -1;
@@ -296,7 +299,7 @@ export class SeqType extends Type {
             }
         } else if (opcode === 18) {
             if (this.cacheInfo.game === "oldschool" && this.cacheInfo.revision >= 230) {
-                const name = buffer.readString();
+                this.name = buffer.readString();
             } else {
                 const b = true;
             }

@@ -21,6 +21,7 @@ const cachesPromise = fetchCacheList();
 export function TokenMakerPage() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>();
+    const [animationProgress, setAnimationProgress] = useState<number>();
     const [tokenMaker, setTokenMaker] = useState<TokenMaker>();
 
     useEffect(() => {
@@ -39,10 +40,14 @@ export function TokenMakerPage() {
                 setDownloadProgress,
             );
 
-            const tokenMaker = new TokenMaker(cacheList, cache);
-            await tokenMaker.init();
-
             setDownloadProgress(undefined);
+
+            const tokenMaker = new TokenMaker(cacheList, cache);
+            await tokenMaker.init((progress) => {
+                setAnimationProgress(progress);
+            });
+
+            setAnimationProgress(undefined);
             setTokenMaker(tokenMaker);
         };
 
@@ -72,6 +77,13 @@ export function TokenMakerPage() {
                     text={`Downloading cache (${formattedCacheSize})`}
                     progress={progress}
                 />
+            </div>
+        );
+    } else if (animationProgress !== undefined) {
+        const progress = (animationProgress * 100) | 0;
+        content = (
+            <div className="center-container max-height">
+                <OsrsLoadingBar text="Loading animations..." progress={progress} />
             </div>
         );
     } else if (tokenMaker) {

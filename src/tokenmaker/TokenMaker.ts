@@ -4,6 +4,7 @@ import { CacheLoaderFactory, getCacheLoaderFactory } from "../rs/cache/loader/Ca
 import { NpcModelLoader } from "../rs/config/npctype/NpcModelLoader";
 import { NpcType } from "../rs/config/npctype/NpcType";
 import { NpcTypeLoader } from "../rs/config/npctype/NpcTypeLoader";
+import { ObjTypeLoader } from "../rs/config/objtype/ObjTypeLoader";
 import { SeqType } from "../rs/config/seqtype/SeqType";
 import { SeqTypeLoader } from "../rs/config/seqtype/SeqTypeLoader";
 import { VarManager } from "../rs/config/vartype/VarManager";
@@ -12,7 +13,9 @@ import { ModelLoader } from "../rs/model/ModelLoader";
 import { SeqFrameLoader } from "../rs/model/seq/SeqFrameLoader";
 import { SkeletalSeqLoader } from "../rs/model/skeletal/SkeletalSeqLoader";
 import { TextureLoader } from "../rs/texture/TextureLoader";
-import { NpcAnimationFinder } from "./NpcAnimationFinder";
+import { NpcAnimationFinder, SerializedAnimationMapping } from "./NpcAnimationFinder";
+
+const ANIMATION_MAPPING_STORAGE_KEY_PREFIX = "npc-animation-mapping-";
 
 export type NpcOption = {
     id: number;
@@ -66,6 +69,7 @@ export class TokenMaker {
     skeletalSeqLoader!: SkeletalSeqLoader | undefined;
     npcTypeLoader!: NpcTypeLoader;
     npcModelLoader!: NpcModelLoader;
+    objTypeLoader!: ObjTypeLoader;
     varManager!: VarManager;
     animationFinder!: NpcAnimationFinder;
 
@@ -77,11 +81,6 @@ export class TokenMaker {
     selectedSeqId: number | null = null;
     currentFrame: number = 0;
     isPlaying: boolean = false;
-
-    // Animation discovery state
-    animationMappingProgress: number = 0;
-    isAnimationMappingBuilt: boolean = false;
-    showAllAnimations: boolean = false; // Toggle to show skeleton-matched animations
 
     // Export settings
     exportResolution: ExportResolution = 128;
@@ -108,7 +107,50 @@ export class TokenMaker {
         readonly loadedCache: LoadedCache,
     ) {}
 
-    async init(): Promise<void> {
+    /**
+     * Get the localStorage key for storing animation mapping for the current cache.
+     */
+    private getAnimationMappingStorageKey(): string {
+        return ANIMATION_MAPPING_STORAGE_KEY_PREFIX + this.loadedCache.info.name;
+    }
+
+    /**
+     * Try to load cached animation mapping from localStorage.
+     */
+    private loadCachedAnimationMapping(): boolean {
+        try {
+            const key = this.getAnimationMappingStorageKey();
+            const cached = localStorage.getItem(key);
+            if (cached) {
+                const data: SerializedAnimationMapping = JSON.parse(cached);
+                this.animationFinder.loadFromSerialized(data);
+                return true;
+            }
+        } catch (e) {
+            console.warn("Failed to load cached animation mapping:", e);
+        }
+        return false;
+    }
+
+    /**
+     * Save animation mapping to localStorage for future use.
+     */
+    private saveAnimationMappingToCache(): void {
+        try {
+            const key = this.getAnimationMappingStorageKey();
+            const data = this.animationFinder.serialize();
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (e) {
+            console.warn("Failed to save animation mapping to cache:", e);
+        }
+    }
+
+    /**
+     * Initialize the TokenMaker.
+     * @param animationProgressCallback Optional callback for animation mapping build progress (0-1).
+     *        This is only called if the mapping needs to be built (not cached).
+     */
+    async init(animationProgressCallback?: (progress: number) => void): Promise<void> {
         this.cacheSystem = CacheSystem.fromFiles(this.loadedCache.type, this.loadedCache.files);
         this.loaderFactory = getCacheLoaderFactory(this.loadedCache.info, this.cacheSystem);
 
@@ -118,6 +160,7 @@ export class TokenMaker {
         this.seqFrameLoader = this.loaderFactory.getSeqFrameLoader();
         this.skeletalSeqLoader = this.loaderFactory.getSkeletalSeqLoader();
         this.npcTypeLoader = this.loaderFactory.getNpcTypeLoader();
+        this.objTypeLoader = this.loaderFactory.getObjTypeLoader();
 
         this.varManager = new VarManager(this.loaderFactory.getVarBitTypeLoader());
 
@@ -138,19 +181,15 @@ export class TokenMaker {
         );
 
         this.buildNpcList();
-    }
 
-    /**
-     * Build the animation-to-skeleton mapping for finding all compatible animations.
-     * This is an async operation that should be called after init().
-     */
-    async buildAnimationMapping(): Promise<void> {
-        await this.animationFinder.buildMapping((progress) => {
-            this.animationMappingProgress = progress;
-            this.onStateChange?.();
-        });
-        this.isAnimationMappingBuilt = true;
-        this.onStateChange?.();
+        // Try to load animation mapping from localStorage cache
+        const loadedFromCache = this.loadCachedAnimationMapping();
+
+        if (!loadedFromCache) {
+            // Build the animation mapping and save to localStorage
+            await this.animationFinder.buildMapping(animationProgressCallback);
+            this.saveAnimationMappingToCache();
+        }
     }
 
     private stripColorTags(name: string): string {
@@ -190,60 +229,8 @@ export class TokenMaker {
     }
 
     /**
-     * Get the reference (built-in) animations for an NPC.
-     * These are the animations defined in the NPC's configuration.
-     */
-    getReferenceAnimations(): AnimationOption[] {
-        const npcType = this.getSelectedNpcType();
-        if (!npcType) {
-            return [];
-        }
-
-        const animations: AnimationOption[] = [];
-        const addAnim = (id: number, name: string) => {
-            if (id !== -1) {
-                const seqType = this.seqTypeLoader.load(id);
-                if (seqType) {
-                    let frameCount: number;
-                    if (seqType.isSkeletalSeq()) {
-                        frameCount = Math.floor(seqType.skeletalEnd - seqType.skeletalStart);
-                        if (frameCount === 0 && this.skeletalSeqLoader) {
-                            const skeletalSeq = this.skeletalSeqLoader.load(seqType.skeletalId);
-                            if (skeletalSeq) {
-                                frameCount = skeletalSeq.getDuration();
-                            }
-                        }
-                    } else {
-                        frameCount = seqType.frameIds?.length ?? 0;
-                    }
-                    animations.push({ id, name, frameCount });
-                }
-            }
-        };
-
-        addAnim(npcType.idleSeqId, "Idle");
-        addAnim(npcType.walkSeqId, "Walk");
-        addAnim(npcType.walkBackSeqId, "Walk Back");
-        addAnim(npcType.walkLeftSeqId, "Walk Left");
-        addAnim(npcType.walkRightSeqId, "Walk Right");
-        addAnim(npcType.turnLeftSeqId, "Turn Left");
-        addAnim(npcType.turnRightSeqId, "Turn Right");
-        addAnim(npcType.runSeqId, "Run");
-        addAnim(npcType.runBackSeqId, "Run Back");
-        addAnim(npcType.runLeftSeqId, "Run Left");
-        addAnim(npcType.runRightSeqId, "Run Right");
-        addAnim(npcType.crawlSeqId, "Crawl");
-        addAnim(npcType.crawlBackSeqId, "Crawl Back");
-        addAnim(npcType.crawlLeftSeqId, "Crawl Left");
-        addAnim(npcType.crawlRightSeqId, "Crawl Right");
-
-        return animations;
-    }
-
-    /**
      * Get all available animations for the selected NPC.
-     * If showAllAnimations is true and the mapping is built, returns all
-     * skeleton-compatible animations. Otherwise returns just reference animations.
+     * Returns all skeleton-compatible animations found via the animation finder.
      */
     getAvailableAnimations(): AnimationOption[] {
         const npcType = this.getSelectedNpcType();
@@ -251,21 +238,14 @@ export class TokenMaker {
             return [];
         }
 
-        // If not showing all animations, or mapping isn't built, return reference animations only
-        if (!this.showAllAnimations || !this.isAnimationMappingBuilt) {
-            return this.getReferenceAnimations();
-        }
-
         // Get all compatible animations based on skeleton matching
         const compatibleSeqIds = this.animationFinder.findCompatibleAnimations(npcType);
 
         // Build the reference animation set for labeling
-        const referenceIds = new Set<number>();
         const referenceLabels = new Map<number, string>();
 
         const addRef = (id: number, name: string) => {
             if (id !== -1) {
-                referenceIds.add(id);
                 referenceLabels.set(id, name);
             }
         };
@@ -302,14 +282,6 @@ export class TokenMaker {
         }
 
         return animations;
-    }
-
-    /**
-     * Set whether to show all skeleton-compatible animations or just reference animations.
-     */
-    setShowAllAnimations(show: boolean): void {
-        this.showAllAnimations = show;
-        this.onStateChange?.();
     }
 
     getSelectedSeqType(): SeqType | undefined {

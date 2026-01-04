@@ -3,6 +3,17 @@ import { SeqType } from "../rs/config/seqtype/SeqType";
 import { SeqTypeLoader } from "../rs/config/seqtype/SeqTypeLoader";
 import { SeqFrameLoader } from "../rs/model/seq/SeqFrameLoader";
 import { SkeletalSeqLoader } from "../rs/model/skeletal/SkeletalSeqLoader";
+import { getAnimationName } from "./AnimationNames";
+
+/**
+ * Serialized format for storing animation mapping in localStorage.
+ */
+export type SerializedAnimationMapping = {
+    // Array of [seqId, baseIds[]] pairs
+    seqToBaseIds: [number, number[]][];
+    // Array of [baseId, seqIds[]] pairs
+    baseIdToSeqs: [number, number[]][];
+};
 
 /**
  * Finds all compatible animations for an NPC based on skeleton/base compatibility.
@@ -31,6 +42,42 @@ export class NpcAnimationFinder {
         private seqFrameLoader: SeqFrameLoader,
         private skeletalSeqLoader: SkeletalSeqLoader | undefined,
     ) {}
+
+    /**
+     * Load mapping from previously serialized data.
+     * This allows fast initialization from localStorage cache.
+     */
+    loadFromSerialized(data: SerializedAnimationMapping): void {
+        this.seqToBaseIds.clear();
+        this.baseIdToSeqs.clear();
+
+        for (const [seqId, baseIds] of data.seqToBaseIds) {
+            this.seqToBaseIds.set(seqId, new Set(baseIds));
+        }
+
+        for (const [baseId, seqIds] of data.baseIdToSeqs) {
+            this.baseIdToSeqs.set(baseId, new Set(seqIds));
+        }
+
+        this.isBuilt = true;
+    }
+
+    /**
+     * Serialize the mapping data for storage in localStorage.
+     */
+    serialize(): SerializedAnimationMapping {
+        const seqToBaseIds: [number, number[]][] = [];
+        for (const [seqId, baseIds] of this.seqToBaseIds) {
+            seqToBaseIds.push([seqId, Array.from(baseIds)]);
+        }
+
+        const baseIdToSeqs: [number, number[]][] = [];
+        for (const [baseId, seqIds] of this.baseIdToSeqs) {
+            baseIdToSeqs.push([baseId, Array.from(seqIds)]);
+        }
+
+        return { seqToBaseIds, baseIdToSeqs };
+    }
 
     /**
      * Get the current build progress (0-1)
@@ -257,7 +304,6 @@ export class NpcAnimationFinder {
 
         const isSkeletal = seqType.isSkeletalSeq();
         let frameCount: number;
-        let name = `Animation ${seqId}`;
 
         if (isSkeletal) {
             frameCount = Math.floor(seqType.skeletalEnd - seqType.skeletalStart);
@@ -271,26 +317,26 @@ export class NpcAnimationFinder {
             frameCount = seqType.frameIds?.length ?? 0;
         }
 
-        // Try to generate a descriptive name based on common patterns
-        name = this.guessAnimationName(seqId, seqType);
+        // Generate name from known names, cache data, or fallback
+        const name = this.getAnimationDisplayName(seqId, seqType);
 
         return { id: seqId, name, frameCount, isSkeletal };
     }
 
     /**
-     * Try to guess a descriptive name for an animation based on its properties.
+     * Get a descriptive name for an animation.
+     * Priority: known names map > cache name > animation ID fallback.
      */
-    private guessAnimationName(seqId: number, seqType: SeqType): string {
-        // Check for common item associations
-        if (seqType.leftHandItem !== -1 || seqType.rightHandItem !== -1) {
-            const items: string[] = [];
-            if (seqType.rightHandItem !== -1) {
-                items.push(`R:${seqType.rightHandItem}`);
-            }
-            if (seqType.leftHandItem !== -1) {
-                items.push(`L:${seqType.leftHandItem}`);
-            }
-            return `Anim ${seqId} (${items.join(", ")})`;
+    private getAnimationDisplayName(seqId: number, seqType: SeqType): string {
+        // First check the known animation names map
+        const knownName = getAnimationName(seqId);
+        if (knownName) {
+            return knownName;
+        }
+
+        // Fall back to cache name if available
+        if (seqType.name && seqType.name.length > 0) {
+            return seqType.name;
         }
 
         return `Animation ${seqId}`;
