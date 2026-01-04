@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import WebFont from "webfontloader";
 
 import { OsrsLoadingBar } from "../components/rs/loading/OsrsLoadingBar";
-import { DownloadProgress } from "../rs/cache/CacheFiles";
-import { formatBytes } from "../util/BytesUtil";
-import { isIos } from "../util/DeviceUtil";
 import { fetchCacheList, loadCacheFiles } from "../mapviewer/Caches";
+import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { TokenMaker } from "../tokenmaker/TokenMaker";
 import { TokenMakerContainer } from "../tokenmaker/TokenMakerContainer";
+import { formatBytes } from "../util/BytesUtil";
+import { isIos } from "../util/DeviceUtil";
 import "./TokenMakerPage.css";
 
 WebFont.load({
@@ -46,6 +46,9 @@ export function TokenMakerPage() {
             await tokenMaker.init((progress) => {
                 setAnimationProgress(progress);
             });
+
+            // Load default NPC (Araxxor) on startup
+            tokenMaker.selectNpc(13668);
 
             setAnimationProgress(undefined);
             setTokenMaker(tokenMaker);
