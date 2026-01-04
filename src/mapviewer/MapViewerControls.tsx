@@ -206,7 +206,9 @@ export const MapViewerControls = memo(
                                             return;
                                         }
 
-                                        downloadBlob(blob);
+                                        const settings = renderer.gridRenderer.getSettings();
+                                        const filename = `osrs_battlemap_${settings.widthInCells}x${settings.heightInCells}.png`;
+                                        downloadBlob(blob, filename);
                                     })
                                     .finally(() => {
                                         setExportingBattlemap(false);

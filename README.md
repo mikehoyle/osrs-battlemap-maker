@@ -1,23 +1,18 @@
-# RuneScape Map Viewer
+# RuneScape Tabletop Tools
 
-[Website](https://osrs.world) | [Discord](https://discord.gg/WfEWPE5wUd)
-
-A webapp for exploring current and historical versions of RuneScape.
-
-<img src="screenshots/lumbridge.png" alt="Lumbridge">
+A webapp for making tabletop components out of Old School Runescape assets
 
 ## Running locally
 
 ```
-$ git clone https://github.com/dennisdev/rs-map-viewer.git
-$ cd rs-map-viewer
-$ yarn install
-$ yarn run download-caches
-$ yarn start
+$ npm run install
+$ npm run download-caches
+$ npm start
 ```
 
 ## Credits
 
+-   Built on [OSRS Map Viewer](https://github.com/dennisdev/rs-map-viewer)
 -   Jagex
 -   [RuneLite](https://github.com/runelite/runelite)
 -   [OpenRS2 Archive](https://archive.openrs2.org/) - Caches
