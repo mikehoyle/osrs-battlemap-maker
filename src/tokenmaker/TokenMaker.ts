@@ -12,6 +12,7 @@ import { ModelLoader } from "../rs/model/ModelLoader";
 import { SeqFrameLoader } from "../rs/model/seq/SeqFrameLoader";
 import { SkeletalSeqLoader } from "../rs/model/skeletal/SkeletalSeqLoader";
 import { TextureLoader } from "../rs/texture/TextureLoader";
+import { NpcAnimationFinder } from "./NpcAnimationFinder";
 
 export type NpcOption = {
     id: number;
@@ -66,6 +67,7 @@ export class TokenMaker {
     npcTypeLoader!: NpcTypeLoader;
     npcModelLoader!: NpcModelLoader;
     varManager!: VarManager;
+    animationFinder!: NpcAnimationFinder;
 
     // NPC list
     npcList: NpcOption[] = [];
@@ -75,6 +77,11 @@ export class TokenMaker {
     selectedSeqId: number | null = null;
     currentFrame: number = 0;
     isPlaying: boolean = false;
+
+    // Animation discovery state
+    animationMappingProgress: number = 0;
+    isAnimationMappingBuilt: boolean = false;
+    showAllAnimations: boolean = false; // Toggle to show skeleton-matched animations
 
     // Export settings
     exportResolution: ExportResolution = 128;
@@ -124,7 +131,26 @@ export class TokenMaker {
             this.varManager,
         );
 
+        this.animationFinder = new NpcAnimationFinder(
+            this.seqTypeLoader,
+            this.seqFrameLoader,
+            this.skeletalSeqLoader,
+        );
+
         this.buildNpcList();
+    }
+
+    /**
+     * Build the animation-to-skeleton mapping for finding all compatible animations.
+     * This is an async operation that should be called after init().
+     */
+    async buildAnimationMapping(): Promise<void> {
+        await this.animationFinder.buildMapping((progress) => {
+            this.animationMappingProgress = progress;
+            this.onStateChange?.();
+        });
+        this.isAnimationMappingBuilt = true;
+        this.onStateChange?.();
     }
 
     private stripColorTags(name: string): string {
@@ -163,7 +189,11 @@ export class TokenMaker {
         return this.npcTypeLoader.load(this.selectedNpcId);
     }
 
-    getAvailableAnimations(): AnimationOption[] {
+    /**
+     * Get the reference (built-in) animations for an NPC.
+     * These are the animations defined in the NPC's configuration.
+     */
+    getReferenceAnimations(): AnimationOption[] {
         const npcType = this.getSelectedNpcType();
         if (!npcType) {
             return [];
@@ -196,13 +226,90 @@ export class TokenMaker {
         addAnim(npcType.walkBackSeqId, "Walk Back");
         addAnim(npcType.walkLeftSeqId, "Walk Left");
         addAnim(npcType.walkRightSeqId, "Walk Right");
+        addAnim(npcType.turnLeftSeqId, "Turn Left");
+        addAnim(npcType.turnRightSeqId, "Turn Right");
         addAnim(npcType.runSeqId, "Run");
+        addAnim(npcType.runBackSeqId, "Run Back");
+        addAnim(npcType.runLeftSeqId, "Run Left");
+        addAnim(npcType.runRightSeqId, "Run Right");
         addAnim(npcType.crawlSeqId, "Crawl");
         addAnim(npcType.crawlBackSeqId, "Crawl Back");
         addAnim(npcType.crawlLeftSeqId, "Crawl Left");
         addAnim(npcType.crawlRightSeqId, "Crawl Right");
 
         return animations;
+    }
+
+    /**
+     * Get all available animations for the selected NPC.
+     * If showAllAnimations is true and the mapping is built, returns all
+     * skeleton-compatible animations. Otherwise returns just reference animations.
+     */
+    getAvailableAnimations(): AnimationOption[] {
+        const npcType = this.getSelectedNpcType();
+        if (!npcType) {
+            return [];
+        }
+
+        // If not showing all animations, or mapping isn't built, return reference animations only
+        if (!this.showAllAnimations || !this.isAnimationMappingBuilt) {
+            return this.getReferenceAnimations();
+        }
+
+        // Get all compatible animations based on skeleton matching
+        const compatibleSeqIds = this.animationFinder.findCompatibleAnimations(npcType);
+
+        // Build the reference animation set for labeling
+        const referenceIds = new Set<number>();
+        const referenceLabels = new Map<number, string>();
+
+        const addRef = (id: number, name: string) => {
+            if (id !== -1) {
+                referenceIds.add(id);
+                referenceLabels.set(id, name);
+            }
+        };
+
+        addRef(npcType.idleSeqId, "Idle");
+        addRef(npcType.walkSeqId, "Walk");
+        addRef(npcType.walkBackSeqId, "Walk Back");
+        addRef(npcType.walkLeftSeqId, "Walk Left");
+        addRef(npcType.walkRightSeqId, "Walk Right");
+        addRef(npcType.turnLeftSeqId, "Turn Left");
+        addRef(npcType.turnRightSeqId, "Turn Right");
+        addRef(npcType.runSeqId, "Run");
+        addRef(npcType.runBackSeqId, "Run Back");
+        addRef(npcType.runLeftSeqId, "Run Left");
+        addRef(npcType.runRightSeqId, "Run Right");
+        addRef(npcType.crawlSeqId, "Crawl");
+        addRef(npcType.crawlBackSeqId, "Crawl Back");
+        addRef(npcType.crawlLeftSeqId, "Crawl Left");
+        addRef(npcType.crawlRightSeqId, "Crawl Right");
+
+        const animations: AnimationOption[] = [];
+
+        for (const seqId of compatibleSeqIds) {
+            const info = this.animationFinder.getAnimationInfo(seqId);
+            if (info) {
+                // Use reference name if this is a reference animation, otherwise use generated name
+                const name = referenceLabels.get(seqId) ?? info.name;
+                animations.push({
+                    id: seqId,
+                    name,
+                    frameCount: info.frameCount,
+                });
+            }
+        }
+
+        return animations;
+    }
+
+    /**
+     * Set whether to show all skeleton-compatible animations or just reference animations.
+     */
+    setShowAllAnimations(show: boolean): void {
+        this.showAllAnimations = show;
+        this.onStateChange?.();
     }
 
     getSelectedSeqType(): SeqType | undefined {

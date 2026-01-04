@@ -78,6 +78,17 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
         tokenMaker.togglePlay();
     }, [tokenMaker]);
 
+    const handleShowAllAnimationsChange = useCallback(
+        (show: boolean) => {
+            tokenMaker.setShowAllAnimations(show);
+        },
+        [tokenMaker],
+    );
+
+    const handleBuildAnimationMapping = useCallback(() => {
+        tokenMaker.buildAnimationMapping();
+    }, [tokenMaker]);
+
     const handleExport = useCallback(async () => {
         const renderer = rendererRef.current;
         if (!renderer) return;
@@ -146,9 +157,14 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
                         currentFrame={tokenMaker.currentFrame}
                         maxFrames={tokenMaker.getCurrentFrameCount()}
                         isPlaying={tokenMaker.isPlaying}
+                        showAllAnimations={tokenMaker.showAllAnimations}
+                        animationMappingProgress={tokenMaker.animationMappingProgress}
+                        isAnimationMappingBuilt={tokenMaker.isAnimationMappingBuilt}
                         onAnimationSelect={handleAnimationSelect}
                         onFrameChange={handleFrameChange}
                         onTogglePlay={handleTogglePlay}
+                        onShowAllAnimationsChange={handleShowAllAnimationsChange}
+                        onBuildAnimationMapping={handleBuildAnimationMapping}
                     />
 
                     <ExportPanel
