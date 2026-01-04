@@ -99,6 +99,13 @@ export class TokenMaker {
     lightX: number = 0.15; // -1 = left, 1 = right
     lightZ: number = -0.1; // -1 = bottom of screen, 1 = top of screen
 
+    // Model position offset (normalized -0.5 to 0.5, where 0.5 = half preview width)
+    modelOffsetX: number = 0; // horizontal offset, positive = right
+    modelOffsetY: number = 0; // vertical offset, positive = up
+
+    // Model rotation (0, 90, 180, 270 degrees)
+    modelRotation: number = 0;
+
     // Event callbacks
     onStateChange?: () => void;
 
@@ -410,6 +417,33 @@ export class TokenMaker {
             this.lightX = x;
             this.lightZ = z;
         }
+        this.onStateChange?.();
+    }
+
+    setModelOffset(x: number, y: number): void {
+        // Clamp to -0.5 to 0.5 (half preview width max in each direction)
+        this.modelOffsetX = Math.max(-0.5, Math.min(x, 0.5));
+        this.modelOffsetY = Math.max(-0.5, Math.min(y, 0.5));
+        this.onStateChange?.();
+    }
+
+    resetModelOffset(): void {
+        this.modelOffsetX = 0;
+        this.modelOffsetY = 0;
+        this.onStateChange?.();
+    }
+
+    isModelOffCenter(): boolean {
+        return this.modelOffsetX !== 0 || this.modelOffsetY !== 0;
+    }
+
+    rotateLeft(): void {
+        this.modelRotation = (this.modelRotation + 90) % 360;
+        this.onStateChange?.();
+    }
+
+    rotateRight(): void {
+        this.modelRotation = (this.modelRotation - 90 + 360) % 360;
         this.onStateChange?.();
     }
 

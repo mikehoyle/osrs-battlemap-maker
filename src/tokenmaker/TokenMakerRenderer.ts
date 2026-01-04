@@ -62,6 +62,16 @@ export class TokenMakerRenderer {
     // Model ground level (minimum Y for shadow projection)
     modelGroundLevel: number = 0;
 
+    // Current zoom level for offset calculations
+    currentZoom: number = 1.5;
+
+    // Track model offset for change detection
+    currentModelOffsetX: number = 0;
+    currentModelOffsetY: number = 0;
+
+    // Track model rotation for change detection
+    currentModelRotation: number = 0;
+
     constructor(canvas: HTMLCanvasElement, tokenMaker: TokenMaker, overlayCanvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.overlayCanvas = overlayCanvas;
@@ -207,6 +217,8 @@ export class TokenMakerRenderer {
         // Adjust zoom based on model size (default to reasonable size if unknown)
         // Lower multiplier = larger token in frame (0.65 fills ~70-75% of frame)
         const zoom = modelSize ? (modelSize / 128) * 0.65 : 1.5;
+        this.currentZoom = zoom;
+
         mat4.ortho(
             this.projectionMatrix,
             -zoom * aspect,
@@ -220,6 +232,24 @@ export class TokenMakerRenderer {
         // View matrix: looking straight down (top-down view)
         mat4.identity(this.viewMatrix);
         mat4.rotateX(this.viewMatrix, this.viewMatrix, -Math.PI / 2); // Look down
+
+        // Apply model offset (translate in world space before rotation)
+        // After -90° X rotation: World X → Screen X, World Z → Screen Y, World Y → depth
+        // Offset is normalized -0.5 to 0.5, multiply by zoom * 2 to get world units
+        const offsetX = this.tokenMaker.modelOffsetX * zoom * 2 * aspect;
+        const offsetZ = this.tokenMaker.modelOffsetY * zoom * 2; // World Z for screen vertical
+        if (offsetX !== 0 || offsetZ !== 0) {
+            mat4.translate(this.viewMatrix, this.viewMatrix, [offsetX, 0, offsetZ]);
+        }
+        this.currentModelOffsetX = this.tokenMaker.modelOffsetX;
+        this.currentModelOffsetY = this.tokenMaker.modelOffsetY;
+
+        // Apply model rotation around Y axis (rotates the model when viewed from above)
+        const rotationRadians = (this.tokenMaker.modelRotation * Math.PI) / 180;
+        if (rotationRadians !== 0) {
+            mat4.rotateY(this.viewMatrix, this.viewMatrix, rotationRadians);
+        }
+        this.currentModelRotation = this.tokenMaker.modelRotation;
     }
 
     calculateModelSize(model: Model): number {
@@ -591,6 +621,21 @@ export class TokenMakerRenderer {
             this.updateTextureFiltering();
         }
 
+        // Check if model offset or rotation changed (needs camera update)
+        if (
+            tokenMaker.modelOffsetX !== this.currentModelOffsetX ||
+            tokenMaker.modelOffsetY !== this.currentModelOffsetY ||
+            tokenMaker.modelRotation !== this.currentModelRotation
+        ) {
+            const model = tokenMaker.getModel();
+            if (model) {
+                const modelSize = this.calculateModelSize(model);
+                this.updateCamera(modelSize);
+            } else {
+                this.updateCamera();
+            }
+        }
+
         // Check if we need to rebuild model buffers
         const needsRebuild =
             tokenMaker.selectedNpcId !== this.currentNpcId ||
@@ -929,6 +974,20 @@ export class TokenMakerRenderer {
         mat4.ortho(projectionMatrix, -zoom, zoom, -zoom, zoom, -100, 100);
         mat4.identity(viewMatrix);
         mat4.rotateX(viewMatrix, viewMatrix, -Math.PI / 2);
+
+        // Apply model offset (same as in updateCamera, but aspect=1 for square export)
+        // World X → Screen X, World Z → Screen Y
+        const offsetX = tokenMaker.modelOffsetX * zoom * 2;
+        const offsetZ = tokenMaker.modelOffsetY * zoom * 2;
+        if (offsetX !== 0 || offsetZ !== 0) {
+            mat4.translate(viewMatrix, viewMatrix, [offsetX, 0, offsetZ]);
+        }
+
+        // Apply model rotation around Y axis
+        const rotationRadians = (tokenMaker.modelRotation * Math.PI) / 180;
+        if (rotationRadians !== 0) {
+            mat4.rotateY(viewMatrix, viewMatrix, rotationRadians);
+        }
 
         // Clear with transparency
         offscreenGl.viewport(0, 0, resolution, resolution);

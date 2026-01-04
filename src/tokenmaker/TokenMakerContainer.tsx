@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { TokenMaker } from "./TokenMaker";
 import { NpcPicker } from "./components/NpcPicker";
@@ -15,7 +15,15 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
     const rendererRef = useRef<TokenMakerRenderer | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [, forceUpdate] = useState({});
+
+    // Drag state refs (using refs to avoid re-renders during drag)
+    const isDragging = useRef(false);
+    const dragStartX = useRef(0);
+    const dragStartY = useRef(0);
+    const dragStartOffsetX = useRef(0);
+    const dragStartOffsetY = useRef(0);
 
     // Force re-render when tokenMaker state changes
     useEffect(() => {
@@ -98,6 +106,72 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
         URL.revokeObjectURL(url);
     }, [tokenMaker]);
 
+    // Drag handlers for model positioning
+    const handleMouseDown = useCallback(
+        (e: MouseEvent<HTMLDivElement>) => {
+            if (tokenMaker.selectedNpcId === null) return;
+
+            isDragging.current = true;
+            dragStartX.current = e.clientX;
+            dragStartY.current = e.clientY;
+            dragStartOffsetX.current = tokenMaker.modelOffsetX;
+            dragStartOffsetY.current = tokenMaker.modelOffsetY;
+
+            // Prevent text selection during drag
+            e.preventDefault();
+        },
+        [tokenMaker],
+    );
+
+    const handleMouseMove = useCallback(
+        (e: MouseEvent<HTMLDivElement>) => {
+            if (!isDragging.current) return;
+
+            const container = containerRef.current;
+            if (!container) return;
+
+            // Calculate delta in pixels
+            const deltaX = e.clientX - dragStartX.current;
+            const deltaY = e.clientY - dragStartY.current;
+
+            // Convert to normalized coords (container is 300x300)
+            // Full container width/height = 1.0 in normalized coords
+            const containerWidth = container.clientWidth || 300;
+            const containerHeight = container.clientHeight || 300;
+
+            const normalizedDeltaX = deltaX / containerWidth;
+            // Negate Y because screen Y increases downward but our offset Y increases upward
+            const normalizedDeltaY = -deltaY / containerHeight;
+
+            // Calculate new offset
+            const newOffsetX = dragStartOffsetX.current + normalizedDeltaX;
+            const newOffsetY = dragStartOffsetY.current + normalizedDeltaY;
+
+            tokenMaker.setModelOffset(newOffsetX, newOffsetY);
+        },
+        [tokenMaker],
+    );
+
+    const handleMouseUp = useCallback(() => {
+        isDragging.current = false;
+    }, []);
+
+    const handleMouseLeave = useCallback(() => {
+        isDragging.current = false;
+    }, []);
+
+    const handleResetPosition = useCallback(() => {
+        tokenMaker.resetModelOffset();
+    }, [tokenMaker]);
+
+    const handleRotateLeft = useCallback(() => {
+        tokenMaker.rotateLeft();
+    }, [tokenMaker]);
+
+    const handleRotateRight = useCallback(() => {
+        tokenMaker.rotateRight();
+    }, [tokenMaker]);
+
     return (
         <div className="token-maker-container">
             <div className="token-maker-header">
@@ -109,10 +183,44 @@ export function TokenMakerContainer({ tokenMaker }: TokenMakerContainerProps): J
 
             <div className="token-maker-content">
                 <div className="token-maker-preview">
-                    <div className="preview-canvas-container rs-border">
+                    <div
+                        ref={containerRef}
+                        className="preview-canvas-container rs-border"
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
+                        style={{ cursor: tokenMaker.selectedNpcId !== null ? "grab" : "default" }}
+                    >
                         <canvas ref={canvasRef} className="preview-canvas" />
                         <canvas ref={overlayCanvasRef} className="preview-canvas-overlay" />
                     </div>
+                    <div className="rotation-controls">
+                        <button
+                            className="rotation-button rs-border rs-background"
+                            onClick={handleRotateLeft}
+                            disabled={tokenMaker.selectedNpcId === null}
+                            title="Rotate Left"
+                        >
+                            &#x21B6;
+                        </button>
+                        <button
+                            className="rotation-button rs-border rs-background"
+                            onClick={handleRotateRight}
+                            disabled={tokenMaker.selectedNpcId === null}
+                            title="Rotate Right"
+                        >
+                            &#x21B7;
+                        </button>
+                    </div>
+                    {tokenMaker.isModelOffCenter() && (
+                        <button
+                            className="reset-position-button rs-border rs-background"
+                            onClick={handleResetPosition}
+                        >
+                            Reset Position
+                        </button>
+                    )}
                     <div className="preview-info content-text">
                         {tokenMaker.selectedNpcId !== null ? (
                             <>
