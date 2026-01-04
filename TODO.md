@@ -5,7 +5,7 @@
 -   Better organized controls?
 -   Places of Interest
     - categorization
--   Page title
+-   FAQ Page
 
 # Possible small additions
 
@@ -19,6 +19,7 @@
 
 # Done!
 
+-   Page title
 -   Add personal-use disclaimer mumbo jumbo to legal
 -   Figure out why it seems like some animations are missing?
 -   Add grid options to query params (maybe local storage too?)
