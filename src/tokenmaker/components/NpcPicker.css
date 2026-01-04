@@ -1,7 +1,14 @@
 .npc-picker {
     display: flex;
     flex-direction: column;
-    max-height: 300px;
+    max-height: 250px;
+}
+
+/* Tablet and up: allow more height */
+@media (min-width: 640px) {
+    .npc-picker {
+        max-height: 300px;
+    }
 }
 
 .npc-search {

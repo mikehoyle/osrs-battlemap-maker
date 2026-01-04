@@ -2,15 +2,27 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 1rem;
+    padding: 0.75rem;
     box-sizing: border-box;
 }
 
 .token-maker-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Tablet and up: more padding */
+@media (min-width: 640px) {
+    .token-maker-container {
+        padding: 1rem;
+    }
+
+    .token-maker-header {
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
 }
 
 .back-button {
@@ -30,7 +42,7 @@
 
 .token-maker-title {
     font-family: "OSRS Bold", sans-serif;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #ff981f;
     text-shadow:
         1px 1px 0 #000,
@@ -40,11 +52,19 @@
     margin: 0;
 }
 
+@media (min-width: 640px) {
+    .token-maker-title {
+        font-size: 1.5rem;
+    }
+}
+
 .token-maker-content {
     display: flex;
+    flex-direction: column;
     flex: 1;
     gap: 1rem;
     min-height: 0;
+    overflow-y: auto;
 }
 
 .token-maker-preview {
@@ -52,16 +72,31 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .preview-canvas-container {
-    width: 300px;
-    height: 300px;
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: #4a4a4a;
     position: relative;
+}
+
+/* Tablet and up: horizontal layout */
+@media (min-width: 640px) {
+    .token-maker-content {
+        flex-direction: row;
+        overflow-y: visible;
+    }
+
+    .preview-canvas-container {
+        width: 300px;
+        max-width: none;
+    }
 }
 
 .preview-canvas {
@@ -137,9 +172,32 @@
     flex-direction: column;
     gap: 1rem;
     flex: 1;
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 0;
     overflow-y: auto;
+}
+
+/* Tablet: constrain controls width */
+@media (min-width: 640px) {
+    .token-maker-controls {
+        min-width: 300px;
+        max-width: 400px;
+    }
+}
+
+/* Wide desktop: controls become a row for better space usage */
+@media (min-width: 1024px) {
+    .token-maker-controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-width: none;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .token-maker-controls > * {
+        flex: 1 1 280px;
+        max-width: 400px;
+    }
 }
 
 /* Control panel shared styles */
@@ -162,6 +220,7 @@
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+    min-width: 0;
 }
 
 .control-row:last-child {
@@ -171,8 +230,15 @@
 .control-label {
     font-family: "OSRS Small", sans-serif;
     color: #ccc;
-    font-size: 1.2rem;
-    min-width: 80px;
+    font-size: 1rem;
+    min-width: 70px;
+}
+
+@media (min-width: 640px) {
+    .control-label {
+        font-size: 1.2rem;
+        min-width: 80px;
+    }
 }
 
 /* Input styles */
@@ -185,6 +251,7 @@
     color: #fff;
     border-radius: 2px;
     flex: 1;
+    min-width: 0;
 }
 
 .control-input:focus {
@@ -236,6 +303,7 @@
 /* Slider styles */
 .control-slider {
     flex: 1;
+    min-width: 0;
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
@@ -281,10 +349,22 @@
 .button-group {
     display: flex;
     gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .button-group .control-button {
     flex: 1;
+    min-width: 0;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+@media (min-width: 640px) {
+    .button-group .control-button {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
 }
 
 .button-group .control-button.active {
