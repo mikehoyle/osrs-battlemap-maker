@@ -41,42 +41,45 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
 
     const requestRef = useRef<number | undefined>();
 
-    const animate = (time: DOMHighResTimeStamp) => {
-        // Wait for 200ms before updating search params
-        if (
-            mapViewer.needsSearchParamUpdate &&
-            performance.now() - mapViewer.lastTimeSearchParamsUpdated > 200
-        ) {
-            setSearchParams(mapViewer.getSearchParams(), { replace: true });
-            mapViewer.needsSearchParamUpdate = false;
-            console.log("Updated search params");
-        }
+    const animate = useCallback(
+        (time: DOMHighResTimeStamp) => {
+            // Wait for 200ms before updating search params
+            if (
+                mapViewer.needsSearchParamUpdate &&
+                performance.now() - mapViewer.lastTimeSearchParamsUpdated > 200
+            ) {
+                setSearchParams(mapViewer.getSearchParams(), { replace: true });
+                mapViewer.needsSearchParamUpdate = false;
+                console.log("Updated search params");
+            }
 
-        if (!hideUi) {
-            setFps(Math.round(renderer.stats.frameTimeFps));
-            setCameraYaw(mapViewer.camera.getYaw());
-            setCameraZoom(mapViewer.camera.orthoZoom);
-        }
+            if (!hideUi) {
+                setFps(Math.round(renderer.stats.frameTimeFps));
+                setCameraYaw(mapViewer.camera.getYaw());
+                setCameraZoom(mapViewer.camera.orthoZoom);
+            }
 
-        if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
-            setMenuProps({
-                x: mapViewer.menuX,
-                y: mapViewer.menuY,
-                tooltip: !mapViewer.menuOpen,
-                entries: mapViewer.menuEntries,
-                debugId: mapViewer.debugId,
-            });
-        } else {
-            setMenuProps(undefined);
-        }
+            if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
+                setMenuProps({
+                    x: mapViewer.menuX,
+                    y: mapViewer.menuY,
+                    tooltip: !mapViewer.menuOpen,
+                    entries: mapViewer.menuEntries,
+                    debugId: mapViewer.debugId,
+                });
+            } else {
+                setMenuProps(undefined);
+            }
 
-        requestRef.current = requestAnimationFrame(animate);
-    };
+            requestRef.current = requestAnimationFrame(animate);
+        },
+        [mapViewer, renderer, hideUi, setSearchParams],
+    );
 
     useEffect(() => {
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, [searchParams, hideUi]);
+    }, [animate]);
 
     const goBack = useCallback(() => {
         navigate("/");

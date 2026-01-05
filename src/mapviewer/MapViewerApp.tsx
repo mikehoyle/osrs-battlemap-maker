@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { registerSerializer } from "threads";
 import WebFont from "webfontloader";
@@ -30,6 +30,7 @@ const workerPool = RenderDataWorkerPool.create(isWallpaperEngine ? 1 : 4);
 
 function MapViewerApp() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const searchParamsRef = useRef(searchParams);
 
     const [errorMessage, setErrorMessage] = useState<string>();
     const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>();
@@ -37,6 +38,7 @@ function MapViewerApp() {
 
     useEffect(() => {
         const abortController = new AbortController();
+        const initialSearchParams = searchParamsRef.current;
 
         const load = async () => {
             const objSpawnsPromise = fetchObjSpawns();
@@ -47,7 +49,7 @@ function MapViewerApp() {
                 throw new Error("No caches found");
             }
 
-            const cacheNameParam = searchParams.get("cache");
+            const cacheNameParam = initialSearchParams.get("cache");
             let cacheInfo = cacheList.latest;
             if (cacheNameParam) {
                 const foundCache = cacheList.caches.find((cache) => cache.name === cacheNameParam);
@@ -82,7 +84,7 @@ function MapViewerApp() {
                 rendererType,
                 cache,
             );
-            mapViewer.applySearchParams(searchParams);
+            mapViewer.applySearchParams(initialSearchParams);
             mapViewer.init();
 
             setDownloadProgress(undefined);

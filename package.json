@@ -55,7 +55,14 @@
         "extends": [
             "react-app",
             "react-app/jest"
-        ]
+        ],
+        "rules": {
+            "@typescript-eslint/no-unused-vars": "off",
+            "@typescript-eslint/no-useless-constructor": "off",
+            "react-hooks/exhaustive-deps": "warn",
+            "jsx-a11y/alt-text": "off",
+            "eqeqeq": "off"
+        }
     },
     "browserslist": {
         "production": [

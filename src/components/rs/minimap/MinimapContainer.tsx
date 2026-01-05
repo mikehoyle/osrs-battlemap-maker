@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { getMapSquareId } from "../../../rs/map/MapFileIndex";
 import "./MinimapContainer.css";
@@ -37,46 +37,49 @@ export const MinimapContainer = memo(function MinimapContainer({
     const [minimapImages, setMinimapImages] = useState<JSX.Element[]>([]);
     const requestRef = useRef<number | undefined>();
 
-    const animate = (time: DOMHighResTimeStamp) => {
-        const pos = getPosition();
+    const animate = useCallback(
+        (time: DOMHighResTimeStamp) => {
+            const pos = getPosition();
 
-        const cameraX = pos.x;
-        const cameraY = pos.y;
+            const cameraX = pos.x;
+            const cameraY = pos.y;
 
-        const cameraMapX = cameraX >> 6;
-        const cameraMapY = cameraY >> 6;
+            const cameraMapX = cameraX >> 6;
+            const cameraMapY = cameraY >> 6;
 
-        const offsetX = (-128 + (cameraX % 64) * 4) | 0;
-        const offsetY = (-128 + (cameraY % 64) * 4) | 0;
+            const offsetX = (-128 + (cameraX % 64) * 4) | 0;
+            const offsetY = (-128 + (cameraY % 64) * 4) | 0;
 
-        const images: JSX.Element[] = [];
+            const images: JSX.Element[] = [];
 
-        for (let mx = 0; mx < 3; mx++) {
-            for (let my = 0; my < 3; my++) {
-                const mapX = cameraMapX - 1 + mx;
-                const mapY = cameraMapY - 1 + my;
+            for (let mx = 0; mx < 3; mx++) {
+                for (let my = 0; my < 3; my++) {
+                    const mapX = cameraMapX - 1 + mx;
+                    const mapY = cameraMapY - 1 + my;
 
-                const mapId = getMapSquareId(mapX, mapY);
+                    const mapId = getMapSquareId(mapX, mapY);
 
-                const minimapUrl = loadMapImageUrl(mapX, mapY) ?? minimapBlack;
-                if (minimapUrl) {
-                    const x = mx * 255 - offsetX;
-                    const y = 255 * 2 - my * 255 + offsetY;
+                    const minimapUrl = loadMapImageUrl(mapX, mapY) ?? minimapBlack;
+                    if (minimapUrl) {
+                        const x = mx * 255 - offsetX;
+                        const y = 255 * 2 - my * 255 + offsetY;
 
-                    images.push(<MinimapImage key={mapId} src={minimapUrl} left={x} top={y} />);
+                        images.push(<MinimapImage key={mapId} src={minimapUrl} left={x} top={y} />);
+                    }
                 }
             }
-        }
 
-        setMinimapImages(images);
+            setMinimapImages(images);
 
-        requestRef.current = requestAnimationFrame(animate);
-    };
+            requestRef.current = requestAnimationFrame(animate);
+        },
+        [getPosition, loadMapImageUrl],
+    );
 
     useEffect(() => {
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, []);
+    }, [animate]);
 
     return (
         <div className="minimap-container">

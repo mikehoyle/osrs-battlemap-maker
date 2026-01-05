@@ -86,7 +86,7 @@ export const MapViewerControls = memo(
             return () => {
                 document.removeEventListener("keydown", handleKeyDown);
             };
-        }, [mapViewer]);
+        }, [setHideUi]);
 
         const rendererOptions: Record<string, MapViewerRendererType> = {};
         for (let v of getAvailableRenderers()) {
@@ -380,7 +380,7 @@ export const MapViewerControls = memo(
                     Height: gridSize.heightInCells,
                 });
             });
-        }, [renderer.gridRenderer]);
+        }, [renderer.gridRenderer, setGridSizeLeva]);
 
         return (
             <Leva
