@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Joystick } from "react-joystick-component";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { RendererCanvas } from "../components/renderer/RendererCanvas";
 import { OsrsLoadingBar } from "../components/rs/loading/OsrsLoadingBar";
@@ -23,6 +23,7 @@ interface MapViewerContainerProps {
 }
 
 export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.Element {
+    const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
     const [renderer, setRenderer] = useState<MapViewerRenderer>(mapViewer.renderer);
@@ -76,6 +77,10 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
     }, [searchParams, hideUi]);
+
+    const goBack = useCallback(() => {
+        navigate("/");
+    }, [navigate]);
 
     const resetCameraYaw = useCallback(() => {
         mapViewer.camera.setYaw(0);
@@ -179,6 +184,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                     <div className="hud left-top">
                         <MinimapContainer
                             yawDegrees={(2047 - cameraYaw) * RS_TO_DEGREES}
+                            onBackClick={goBack}
                             onCompassClick={resetCameraYaw}
                             onWorldMapClick={openWorldMap}
                             onPlacesOfInterestClick={openPlacesDialog}

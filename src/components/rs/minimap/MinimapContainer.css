@@ -1,16 +1,53 @@
 .minimap-container {
     position: relative;
     width: 210px;
-    height: 165px;
+    height: 210px;
     overflow: hidden;
     z-index: 10;
+}
+.minimap-container .minimap-button-container {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.minimap-container .minimap-back-button {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    border-image-source: url(./worldmap-button-nineslice.png);
+    border-image-slice: 16 fill;
+    border-image-width: 24px;
+    border-image-repeat: repeat;
+    padding-right: 20px;
+    align-items: center;
+}
+
+.minimap-back-button .back-icon {
+    background-image: url(./osrs-exit-button.png);
+    background-size: 26px 32px;
+    width: 26px;
+    min-width: 26px;
+    height: 32px;
+    margin-right: 6px; /* make up for less wide icon */
+}
+
+.minimap-back-button:hover .back-icon {
+    background-image: url(./osrs-exit-button-hover.png);
+}
+
+.minimap-back-button .back-text {
+    padding-left: 10px;
+    font-size: 24px;
+    font-family: "OSRS Small", serif;
 }
 
 .minimap-container .worldmap-button {
     cursor: pointer;
-    position: absolute;
-    left: 4px;
-    top: 4px;
     display: flex;
     flex-direction: row;
     border-image-source: url(./worldmap-button-nineslice.png);
@@ -41,9 +78,6 @@
 
 .minimap-container .places-button {
     cursor: pointer;
-    position: absolute;
-    left: 4px;
-    top: 52px;
     display: flex;
     flex-direction: row;
     border-image-source: url(./worldmap-button-nineslice.png);
