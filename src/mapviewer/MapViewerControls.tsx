@@ -385,7 +385,7 @@ export const MapViewerControls = memo(
         return (
             <Leva
                 titleBar={{ filter: false }}
-                collapsed={true}
+                collapsed={false}
                 hideCopyButton={true}
                 hidden={hidden}
             />
