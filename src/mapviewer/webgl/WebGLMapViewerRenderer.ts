@@ -782,6 +782,41 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.app.resize(width, height);
     }
 
+    /**
+     * Ensures all WebGL commands have completed before canvas capture.
+     * This prevents race conditions at higher export resolutions where GPU work takes longer.
+     */
+    protected override waitForRenderComplete(): void {
+        this.gl.finish();
+    }
+
+    /**
+     * Recreates all framebuffers at the current app dimensions.
+     * Called during export to ensure framebuffers match the target export resolution.
+     * PicoGL's framebuffer.resize() doesn't reliably resize all attachment types.
+     */
+    recreateFramebuffers(): void {
+        // Delete existing framebuffers and their attachments
+        this.framebuffer?.delete();
+        this.colorTarget?.delete();
+        this.interactTarget?.delete();
+        this.depthTarget?.delete();
+        this.textureFramebuffer?.delete();
+        this.textureColorTarget?.delete();
+        this.interactFramebuffer?.delete();
+        this.interactColorTarget?.delete();
+
+        // Recreate all framebuffers at current app dimensions
+        this.initFramebuffers();
+    }
+
+    /**
+     * Prepares renderer for export by ensuring framebuffers match target dimensions.
+     */
+    protected override prepareForExport(): void {
+        this.recreateFramebuffers();
+    }
+
     override render(time: number, deltaTime: number, resized: boolean): void {
         const showDebugTimer = this.mapViewer.inputManager.isKeyDown("KeyY");
 
@@ -829,8 +864,9 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             this.textureFramebuffer.resize();
             this.interactFramebuffer.resize();
 
-            this.resolutionUni[0] = this.app.width;
-            this.resolutionUni[1] = this.app.height;
+            // Use export dimensions if set, otherwise use app dimensions
+            this.resolutionUni[0] = this.exportRenderWidth ?? this.app.width;
+            this.resolutionUni[1] = this.exportRenderHeight ?? this.app.height;
         }
 
         const inputManager = this.mapViewer.inputManager;
@@ -838,7 +874,10 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
         this.handleInput(deltaTime);
 
-        camera.update(this.app.width, this.app.height);
+        // Use export dimensions if set (during renderForExport), otherwise use app dimensions
+        const renderWidth = this.exportRenderWidth ?? this.app.width;
+        const renderHeight = this.exportRenderHeight ?? this.app.height;
+        camera.update(renderWidth, renderHeight);
 
         const renderDistance = this.mapViewer.renderDistance;
 

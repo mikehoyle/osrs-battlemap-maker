@@ -15,6 +15,10 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
     mapManager: MapManager<T>;
     gridRenderer: GridRenderer2D;
 
+    // Export render dimensions - when set, render() should use these instead of app dimensions
+    protected exportRenderWidth: number | null = null;
+    protected exportRenderHeight: number | null = null;
+
     constructor(public mapViewer: MapViewer) {
         super();
         this.gridRenderer = new GridRenderer2D();
@@ -224,6 +228,22 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
     }
 
     /**
+     * Called after resize but before rendering for export.
+     * Subclasses can override to prepare resources at the new resolution (e.g., recreate framebuffers).
+     */
+    protected prepareForExport(): void {
+        // Base implementation does nothing - subclasses override as needed
+    }
+
+    /**
+     * Called before capturing the canvas for export.
+     * Subclasses can override to ensure rendering is complete (e.g., gl.finish()).
+     */
+    protected waitForRenderComplete(): void {
+        // Base implementation does nothing - subclasses override for GPU sync
+    }
+
+    /**
      * Renders a single frame at a specific resolution for export.
      * Temporarily modifies canvas size and camera, renders, captures the result,
      * then restores state.
@@ -248,6 +268,10 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const originalGridSettings = { ...this.gridRenderer.getSettings() };
         const originalMaxGridSize = { ...this.gridRenderer.getMaxGridSize() };
 
+        // Clear any pending scroll input to prevent it from modifying orthoZoom during render
+        // This fixes a race condition where user scroll events could corrupt export resolution
+        this.mapViewer.inputManager.getDeltaMouseScroll();
+
         // Temporarily resize BOTH canvases (overlay must match or grid settings get corrupted)
         this.canvas.width = targetWidth;
         this.canvas.height = targetHeight;
@@ -255,14 +279,30 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         this.overlayCanvas.height = targetHeight;
         this.onResize(targetWidth, targetHeight);
 
+        // Prepare renderer resources for export (e.g., recreate framebuffers at new size)
+        this.prepareForExport();
+
         // Temporarily adjust camera
         this.mapViewer.camera.orthoZoom = orthoZoom;
         this.mapViewer.camera.updated = true;
         this.mapViewer.camera.update(targetWidth, targetHeight);
 
+        // Set export dimensions so render() uses these instead of app dimensions
+        // This bypasses potential issues with app.resize() not updating correctly
+        this.exportRenderWidth = targetWidth;
+        this.exportRenderHeight = targetHeight;
+
         // Render a single frame
         const time = performance.now();
         this.render(time, 0, true);
+
+        // Clear export dimensions
+        this.exportRenderWidth = null;
+        this.exportRenderHeight = null;
+
+        // Ensure GPU has finished rendering before capturing
+        // This prevents race conditions at higher resolutions where GPU work takes longer
+        this.waitForRenderComplete();
 
         // Capture the rendered frame before restoring
         const bitmap = await createImageBitmap(this.canvas);
@@ -273,6 +313,10 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         this.overlayCanvas.width = originalOverlayWidth;
         this.overlayCanvas.height = originalOverlayHeight;
         this.onResize(originalWidth, originalHeight);
+
+        // Restore renderer resources to original dimensions
+        this.prepareForExport();
+
         this.mapViewer.camera.orthoZoom = originalOrthoZoom;
         this.mapViewer.camera.updated = true;
         this.mapViewer.camera.update(originalWidth, originalHeight);
