@@ -26,20 +26,6 @@ export function createTextureArray(
 }
 
 export class PicoTexture extends Texture {
-    constructor(
-        gl: WebGLRenderingContext,
-        appState: any,
-        binding: number,
-        image: ArrayBufferView,
-        width: number,
-        height: number,
-        depth: number,
-        mipmaps: boolean,
-        options: any,
-    ) {
-        // @ts-ignore
-        super(gl, appState, binding, image, width, height, depth, mipmaps, options);
-    }
 
     resize(width: number, height: number, depth?: number | undefined) {
         if (!(this.gl instanceof WebGL2RenderingContext)) {

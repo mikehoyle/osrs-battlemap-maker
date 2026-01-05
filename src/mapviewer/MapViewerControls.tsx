@@ -2,11 +2,7 @@ import { Leva, LevaInputs, button, folder, useControls } from "leva";
 import { Schema } from "leva/dist/declarations/src/types";
 import { memo, useEffect, useState } from "react";
 
-import {
-    GridRenderer2D,
-    GridSettings,
-    MINIMUM_GRID_SIZE,
-} from "../components/renderer/GridRenderer2D";
+import { MINIMUM_GRID_SIZE } from "../components/renderer/GridRenderer2D";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { isTouchDevice } from "../util/DeviceUtil";
 import { downloadBlob } from "../util/DownloadUtil";
@@ -42,7 +38,7 @@ export const MapViewerControls = memo(
     }: MapViewerControlsProps): JSX.Element => {
         const mapViewer = renderer.mapViewer;
 
-        const [projectionType, setProjectionType] = useState<ProjectionType>(
+        const [projectionType] = useState<ProjectionType>(
             mapViewer.camera.projectionType,
         );
         const [dashedGridLine, setDashedGridLine] = useState<boolean>(
@@ -86,7 +82,7 @@ export const MapViewerControls = memo(
             return () => {
                 document.removeEventListener("keydown", handleKeyDown);
             };
-        }, [mapViewer]);
+        }, [setHideUi]);
 
         const rendererOptions: Record<string, MapViewerRendererType> = {};
         for (let v of getAvailableRenderers()) {
@@ -380,7 +376,7 @@ export const MapViewerControls = memo(
                     Height: gridSize.heightInCells,
                 });
             });
-        }, [renderer.gridRenderer]);
+        }, [renderer.gridRenderer, setGridSizeLeva]);
 
         return (
             <Leva

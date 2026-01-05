@@ -188,7 +188,6 @@ export class WebGPUMapViewerRenderer extends MapViewerRenderer {
 
         const device = this.device;
         const context = this.context;
-        const pipeline = this.pipeline;
 
         const commandEncoder = device.createCommandEncoder();
         const textureView = context.getCurrentTexture().createView();

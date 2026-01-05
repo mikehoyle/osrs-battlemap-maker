@@ -97,7 +97,7 @@ export const WorldMap = memo(function WorldMap(props: WorldMapProps) {
     const halfWidth = (width / 2) | 0;
     const halfHeight = (height / 2) | 0;
 
-    const animate = (time: DOMHighResTimeStamp) => {
+    const animate = useCallback((time: DOMHighResTimeStamp) => {
         const halfTileSize = tileSize / 2;
         const imageSize = 64 * tileSize;
 
@@ -127,6 +127,7 @@ export const WorldMap = memo(function WorldMap(props: WorldMapProps) {
                             key={mapId}
                             className={`worldmap-image ${imageMapX}_${imageMapY}`}
                             src={mapUrl}
+                            alt=""
                             style={{
                                 left: x + rx * imageSize,
                                 bottom: y + ry * imageSize,
@@ -142,12 +143,12 @@ export const WorldMap = memo(function WorldMap(props: WorldMapProps) {
         setImages(images);
 
         requestRef.current = requestAnimationFrame(animate);
-    };
+    }, [pos, loadMapImageUrl, halfWidth, halfHeight, cameraX, cameraY, tileSize, width, height]);
 
     useLayoutEffect(() => {
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, [width, height, pos, tileSize]);
+    }, [animate]);
 
     const onDoubleClick = (event: MouseEvent) => {
         setIsDragging(false);

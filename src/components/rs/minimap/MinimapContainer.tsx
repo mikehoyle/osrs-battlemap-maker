@@ -1,11 +1,9 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { getMapSquareId } from "../../../rs/map/MapFileIndex";
 import "./MinimapContainer.css";
 import { MinimapImage } from "./MinimapImage";
-import compass from "./compass.png";
 import minimapBlack from "./minimap-black.png";
-import frame from "./minimap-frame.png";
 
 interface Position {
     x: number;
@@ -34,10 +32,10 @@ export const MinimapContainer = memo(function MinimapContainer({
     getPosition,
     loadMapImageUrl,
 }: MinimapContainerProps) {
-    const [minimapImages, setMinimapImages] = useState<JSX.Element[]>([]);
+    const [, setMinimapImages] = useState<JSX.Element[]>([]);
     const requestRef = useRef<number | undefined>();
 
-    const animate = (time: DOMHighResTimeStamp) => {
+    const animate = useCallback((time: DOMHighResTimeStamp) => {
         const pos = getPosition();
 
         const cameraX = pos.x;
@@ -71,12 +69,12 @@ export const MinimapContainer = memo(function MinimapContainer({
         setMinimapImages(images);
 
         requestRef.current = requestAnimationFrame(animate);
-    };
+    }, [getPosition, loadMapImageUrl]);
 
     useEffect(() => {
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, []);
+    }, [animate]);
 
     return (
         <div className="minimap-container">

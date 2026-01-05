@@ -280,7 +280,7 @@ export class SeqType extends Type {
                 if (this.cacheInfo.revision < 226) {
                     this.decodeSkeletalDuration(buffer);
                 } else if (this.cacheInfo.revision >= 233) {
-                    const heightOffset = buffer.readUnsignedByte();
+                    buffer.readUnsignedByte();
                 }
             } else {
                 // bool = true;
@@ -295,7 +295,7 @@ export class SeqType extends Type {
                     this.skeletalMasks[buffer.readUnsignedByte()] = true;
                 }
             } else {
-                const v = buffer.readUnsignedByte();
+                buffer.readUnsignedByte();
             }
         } else if (opcode === 18) {
             if (this.cacheInfo.game === "oldschool" && this.cacheInfo.revision >= 230) {

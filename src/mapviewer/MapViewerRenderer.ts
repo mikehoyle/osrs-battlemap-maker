@@ -1,6 +1,6 @@
 import { Schema } from "leva/dist/declarations/src/types";
 
-import { GridRenderer2D, GridSettings } from "../components/renderer/GridRenderer2D";
+import { GridRenderer2D } from "../components/renderer/GridRenderer2D";
 import { Renderer } from "../components/renderer/Renderer";
 import { SceneBuilder } from "../rs/scene/SceneBuilder";
 import { clamp } from "../util/MathUtil";
@@ -83,7 +83,6 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         let deltaZ = 0;
 
         const deltaPos = 16 * (this.mapViewer.cameraSpeed * cameraSpeedMult) * deltaTimeSec;
-        const deltaHeight = 8 * (this.mapViewer.cameraSpeed * cameraSpeedMult) * deltaTimeSec;
 
         if (inputManager.isKeyDown("KeyW") || inputManager.isKeyDown("ArrowUp")) {
             // Forward

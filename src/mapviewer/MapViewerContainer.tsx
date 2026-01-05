@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Joystick } from "react-joystick-component";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -41,42 +41,45 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
 
     const requestRef = useRef<number | undefined>();
 
-    const animate = (time: DOMHighResTimeStamp) => {
-        // Wait for 200ms before updating search params
-        if (
-            mapViewer.needsSearchParamUpdate &&
-            performance.now() - mapViewer.lastTimeSearchParamsUpdated > 200
-        ) {
-            setSearchParams(mapViewer.getSearchParams(), { replace: true });
-            mapViewer.needsSearchParamUpdate = false;
-            console.log("Updated search params");
-        }
+    const animate = useMemo(() => {
+        const animateFn = () => {
+            // Wait for 200ms before updating search params
+            if (
+                mapViewer.needsSearchParamUpdate &&
+                performance.now() - mapViewer.lastTimeSearchParamsUpdated > 200
+            ) {
+                setSearchParams(mapViewer.getSearchParams(), { replace: true });
+                mapViewer.needsSearchParamUpdate = false;
+                console.log("Updated search params");
+            }
 
-        if (!hideUi) {
-            setFps(Math.round(renderer.stats.frameTimeFps));
-            setCameraYaw(mapViewer.camera.getYaw());
-            setCameraZoom(mapViewer.camera.orthoZoom);
-        }
+            if (!hideUi) {
+                setFps(Math.round(renderer.stats.frameTimeFps));
+                setCameraYaw(mapViewer.camera.getYaw());
+                setCameraZoom(mapViewer.camera.orthoZoom);
+            }
 
-        if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
-            setMenuProps({
-                x: mapViewer.menuX,
-                y: mapViewer.menuY,
-                tooltip: !mapViewer.menuOpen,
-                entries: mapViewer.menuEntries,
-                debugId: mapViewer.debugId,
-            });
-        } else {
-            setMenuProps(undefined);
-        }
+            if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
+                setMenuProps({
+                    x: mapViewer.menuX,
+                    y: mapViewer.menuY,
+                    tooltip: !mapViewer.menuOpen,
+                    entries: mapViewer.menuEntries,
+                    debugId: mapViewer.debugId,
+                });
+            } else {
+                setMenuProps(undefined);
+            }
 
-        requestRef.current = requestAnimationFrame(animate);
-    };
+            requestRef.current = requestAnimationFrame(animateFn);
+        };
+        return animateFn;
+    }, [mapViewer, renderer, setSearchParams, hideUi]);
 
     useEffect(() => {
         requestRef.current = requestAnimationFrame(animate);
         return () => cancelAnimationFrame(requestRef.current!);
-    }, [searchParams, hideUi]);
+    }, [animate]);
 
     const goBack = useCallback(() => {
         navigate("/");

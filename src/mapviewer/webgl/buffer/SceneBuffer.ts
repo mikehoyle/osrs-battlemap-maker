@@ -1,10 +1,9 @@
 import { vec3 } from "gl-matrix";
 
-import { Model, computeTextureCoords } from "../../../rs/model/Model";
+import { Model } from "../../../rs/model/Model";
 import { Scene } from "../../../rs/scene/Scene";
 import { SceneTile } from "../../../rs/scene/SceneTile";
 import { TextureLoader } from "../../../rs/texture/TextureLoader";
-import { clamp } from "../../../util/MathUtil";
 import { DrawRange, newDrawRange } from "../DrawRange";
 import { InteractType } from "../InteractType";
 import { LocAnimatedData } from "../loc/LocAnimatedData";

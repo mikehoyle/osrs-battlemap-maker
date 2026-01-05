@@ -19,7 +19,6 @@ import {
 import { OsrsMenuEntry } from "../../components/rs/menu/OsrsMenu";
 import { createTextureArray } from "../../picogl/PicoTexture";
 import { MenuTargetType } from "../../rs/MenuEntry";
-import { Scene } from "../../rs/scene/Scene";
 import { isTouchDevice, isWebGL2Supported, pixelRatio } from "../../util/DeviceUtil";
 import { MapViewer } from "../MapViewer";
 import { MapViewerRenderer } from "../MapViewerRenderer";

@@ -374,13 +374,13 @@ export class LocType extends Type {
                 // hd only = true?
             }
         } else if (opcode === 88) {
-            const bool = true;
+            // bool = true
         } else if (opcode === 89) {
             this.seqRandomStart = false;
         } else if (opcode === 90) {
-            const bool = true;
+            // bool = true
         } else if (opcode === 91) {
-            const members = true;
+            // members = true
         } else if (opcode === 93) {
             this.contourGroundType = 3;
             this.contourGroundParam = buffer.readShort();
@@ -393,29 +393,28 @@ export class LocType extends Type {
                 this.contourGroundParam = buffer.readUnsignedShort();
             }
         } else if (opcode === 96) {
-            const aBoolean1878 = true;
+            // aBoolean1878 = true
         } else if (opcode === 97) {
-            const adjustMapSceneRotation = true;
+            // adjustMapSceneRotation = true
         } else if (opcode === 98) {
-            const hasAnimation = true;
+            // hasAnimation = true
         } else if (opcode === 99) {
-            const cursor1op = buffer.readUnsignedByte();
-            const cursor1 = buffer.readUnsignedShort();
+            buffer.readUnsignedByte();
+            buffer.readUnsignedShort();
         } else if (opcode === 100) {
-            const cursor2op = buffer.readUnsignedByte();
-            const cursor2 = buffer.readUnsignedShort();
+            buffer.readUnsignedByte();
+            buffer.readUnsignedShort();
         } else if (opcode === 101) {
-            const mapSceneRotationOff = buffer.readUnsignedByte();
+            buffer.readUnsignedByte();
         } else if (opcode === 102) {
             this.mapSceneId = buffer.readUnsignedShort();
         } else if (opcode === 103) {
-            const occludeType = 0;
+            // occludeType = 0
         } else if (opcode === 104) {
-            const ambientSoundVolume = buffer.readUnsignedByte();
+            buffer.readUnsignedByte();
         } else if (opcode === 105) {
-            const flipMapSceneSprite = true;
+            // flipMapSceneSprite = true
         } else if (opcode === 106) {
-            let totalDelay = 0;
             const count = buffer.readUnsignedByte();
             this.randomSeqIds = new Array(count);
             this.randomSeqDelays = new Array(count);
@@ -423,9 +422,7 @@ export class LocType extends Type {
                 this.randomSeqIds[i] = this.isLargeModelId()
                     ? buffer.readBigSmart()
                     : buffer.readUnsignedShort();
-                const delay = buffer.readUnsignedByte();
-                this.randomSeqDelays[i] = delay;
-                totalDelay += delay;
+                this.randomSeqDelays[i] = buffer.readUnsignedByte();
             }
         } else if (opcode === 107) {
             this.mapFunctionId = buffer.readUnsignedShort();
@@ -441,29 +438,29 @@ export class LocType extends Type {
                 campaigns[i] = buffer.readUnsignedShort();
             }
         } else if (opcode === 163) {
-            const aByte2193 = buffer.readByte();
-            const aByte2130 = buffer.readByte();
-            const aByte2148 = buffer.readByte();
-            const aByte2140 = buffer.readByte();
+            buffer.readByte();
+            buffer.readByte();
+            buffer.readByte();
+            buffer.readByte();
         } else if (opcode === 167) {
-            const v = buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
         } else if (opcode === 168) {
-            const b = true;
+            // b = true
         } else if (opcode === 169) {
-            const b = true;
+            // b = true
         } else if (opcode === 170) {
-            const v = buffer.readUnsignedSmart();
+            buffer.readUnsignedSmart();
         } else if (opcode === 171) {
-            const v = buffer.readUnsignedSmart();
+            buffer.readUnsignedSmart();
         } else if (opcode === 173) {
-            const v0 = buffer.readUnsignedShort();
-            const v1 = buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
         } else if (opcode === 177) {
-            const b = true;
+            // b = true
         } else if (opcode === 178) {
-            const v = buffer.readUnsignedByte();
+            buffer.readUnsignedByte();
         } else if (opcode === 189) {
-            const bloom = true;
+            // bloom = true
         } else if (opcode === 190) {
             // unknown starts 731
         } else if (opcode === 191) {

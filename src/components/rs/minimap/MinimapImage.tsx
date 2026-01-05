@@ -7,6 +7,6 @@ interface MinimapImageProps {
 
 export function MinimapImage({ src, left, top }: MinimapImageProps) {
     return (
-        <img className="minimap-image" src={src} width={256} height={256} style={{ left, top }} />
+        <img className="minimap-image" src={src} width={256} height={256} style={{ left, top }} alt="" />
     );
 }

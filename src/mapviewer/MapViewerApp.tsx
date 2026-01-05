@@ -10,7 +10,7 @@ import { isIos, isWallpaperEngine } from "../util/DeviceUtil";
 import { fetchCacheList, loadCacheFiles } from "./Caches";
 import { MapViewer } from "./MapViewer";
 import { MapViewerContainer } from "./MapViewerContainer";
-import { WEBGL, getAvailableRenderers } from "./MapViewerRenderers";
+import { getAvailableRenderers } from "./MapViewerRenderers";
 import { fetchNpcSpawns, getNpcSpawnsUrl } from "./data/npc/NpcSpawn";
 import { fetchObjSpawns } from "./data/obj/ObjSpawn";
 import { renderDataLoaderSerializer } from "./worker/RenderDataLoader";
@@ -29,7 +29,7 @@ const cachesPromise = fetchCacheList();
 const workerPool = RenderDataWorkerPool.create(isWallpaperEngine ? 1 : 4);
 
 function MapViewerApp() {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
 
     const [errorMessage, setErrorMessage] = useState<string>();
     const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>();
@@ -98,6 +98,7 @@ function MapViewerApp() {
         return () => {
             abortController.abort();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     let content: JSX.Element | undefined;
