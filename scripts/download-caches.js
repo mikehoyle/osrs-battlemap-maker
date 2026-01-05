@@ -3,10 +3,14 @@ const AdmZip = require("adm-zip");
 
 const readline = require("readline");
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
+// Only create readline if running interactively (not in CI)
+const isInteractive = process.stdin.isTTY && !process.env.CI;
+const rl = isInteractive
+    ? readline.createInterface({
+          input: process.stdin,
+          output: process.stdout,
+      })
+    : null;
 
 function formatBytes(bytes, decimals = 2) {
     if (!+bytes) {
@@ -23,6 +27,11 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function askQuestion(query) {
+    // Skip prompts in non-interactive mode (CI/CD)
+    if (!rl) {
+        console.log(query + " (auto-continuing in non-interactive mode)");
+        return Promise.resolve("");
+    }
     return new Promise((resolve) =>
         rl.question(query, (ans) => {
             resolve(ans);

@@ -6,9 +6,7 @@
 -   Places of Interest
     - categorization
 -   FAQ Page
--   There's STILL an issue with export resolutions
--   Landing page cards
--   Export naming (include tile width and height)
+-   Figure out the cache solution for deployment
 
 # Possible small additions
 
