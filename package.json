@@ -41,7 +41,8 @@
     },
     "scripts": {
         "start": "craco start",
-        "build": "CI=false craco build",
+        "build": "craco build",
+        "build:deploy": "CI=false npm run download-caches && npm run build && cp -r caches build/caches",
         "test": "craco test",
         "lint": "prettier --write \"./**/*.{js,ts,jsx,tsx,css,md}\"",
         "prepare": "husky install",
