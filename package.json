@@ -98,6 +98,7 @@
         "sharp": "^0.32.6",
         "threads-plugin": "^1.4.0",
         "ts-node": "^10.9.1",
-        "ts-shader-loader": "^2.0.2"
+        "ts-shader-loader": "^2.0.2",
+        "wrangler": "^4.54.0"
     }
 }
