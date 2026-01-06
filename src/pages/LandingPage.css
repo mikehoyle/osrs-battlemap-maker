@@ -41,6 +41,12 @@
     gap: 2rem;
 }
 
+ /* A little dead space to force centered content up and buffer to bottom of page */
+.landing-content::after {
+  content: "";
+  height: 100px;
+}
+
 .landing-logo {
     width: 300px;
     max-width: 80vw;
