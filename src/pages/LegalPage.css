@@ -45,6 +45,7 @@
     word-wrap: break-word;
     margin: 0;
     line-height: 1.5;
+    user-select: text;
 }
 
 .legal-error {
