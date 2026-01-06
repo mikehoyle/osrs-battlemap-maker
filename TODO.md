@@ -6,7 +6,7 @@
 -   Places of Interest
     - categorization
 -   FAQ Page
--   Figure out the cache solution for deployment
+-   Cron job for updating cache in R2
 
 # Possible small additions
 

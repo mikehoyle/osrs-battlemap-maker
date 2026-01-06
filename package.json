@@ -41,7 +41,7 @@
     },
     "scripts": {
         "start": "craco start",
-        "build": "CI=false craco build",
+        "build": "CI=false craco build && cp build/index.html build/404.html",
         "test": "craco test",
         "lint": "prettier --write \"./**/*.{js,ts,jsx,tsx,css,md}\"",
         "prepare": "husky install",
