@@ -5,13 +5,36 @@
     justify-content: center;
     align-items: safe center;
     background-color: #1a1a1a;
+    background-image:
+        radial-gradient(at 0% 0%, #3a3a3a 0%, transparent 55%),
+        radial-gradient(at 100% 0%, #2d2d2d 0%, transparent 50%),
+        radial-gradient(at 100% 100%, #353535 0%, transparent 55%),
+        radial-gradient(at 0% 100%, #282828 0%, transparent 60%),
+        radial-gradient(at 50% 40%, #303030 0%, transparent 65%),
+        radial-gradient(at 25% 75%, #383838 0%, transparent 45%),
+        radial-gradient(at 75% 25%, #2a2a2a 0%, transparent 50%);
     padding: 2rem 1rem 4rem;
     box-sizing: border-box;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
 
+.landing-grid-pattern {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.landing-grid-highlight {
+    z-index: 1;
+}
+
 .landing-content {
+    position: relative;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -151,6 +174,7 @@
     bottom: 0;
     left: 0;
     right: 0;
+    z-index: 2;
     text-align: center;
     padding: 0.75rem;
     background: linear-gradient(to top, rgba(26, 26, 26, 0.95) 0%, transparent 100%);
