@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Joystick } from "react-joystick-component";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { RendererCanvas } from "../components/renderer/RendererCanvas";
@@ -11,7 +10,6 @@ import { WorldMapModal } from "../components/rs/worldmap/WorldMapModal";
 import { RS_TO_DEGREES } from "../rs/MathConstants";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { formatBytes } from "../util/BytesUtil";
-import { isTouchDevice } from "../util/DeviceUtil";
 import { MapViewer } from "./MapViewer";
 import "./MapViewerContainer.css";
 import { MapViewerControls } from "./MapViewerControls";
@@ -211,31 +209,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                         onPlaceSelected={onPlaceSelected}
                     />
                 </span>
-            )}
-
-            {!hideUi && isTouchDevice && (
-                <div className="joystick-container left">
-                    <Joystick
-                        size={75}
-                        baseColor="#181C20"
-                        stickColor="#007BFF"
-                        stickSize={40}
-                        move={mapViewer.inputManager.onPositionJoystickMove}
-                        stop={mapViewer.inputManager.onPositionJoystickStop}
-                    ></Joystick>
-                </div>
-            )}
-            {!hideUi && isTouchDevice && (
-                <div className="joystick-container right">
-                    <Joystick
-                        size={75}
-                        baseColor="#181C20"
-                        stickColor="#007BFF"
-                        stickSize={40}
-                        move={mapViewer.inputManager.onCameraJoystickMove}
-                        stop={mapViewer.inputManager.onCameraJoystickStop}
-                    ></Joystick>
-                </div>
             )}
 
             <RendererCanvas renderer={renderer} />

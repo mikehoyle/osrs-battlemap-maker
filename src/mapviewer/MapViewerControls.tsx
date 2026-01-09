@@ -8,7 +8,6 @@ import {
     MINIMUM_GRID_SIZE,
 } from "../components/renderer/GridRenderer2D";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
-import { isTouchDevice } from "../util/DeviceUtil";
 import { downloadBlob } from "../util/DownloadUtil";
 import { loadCacheFiles } from "./Caches";
 import { ProjectionType } from "./Camera";
@@ -52,9 +51,8 @@ export const MapViewerControls = memo(
         const [isExportingBattlemap, setExportingBattlemap] = useState(false);
         const [exportResolution, setExportResolution] = useState<ExportResolution>(128);
 
-        const positionControls = isTouchDevice
-            ? "Joystick, Drag up and down." // TODO: confirm this is actually right for mobile
-            : "WASD or Arrow Keys\nor Click-and-drag.\nUse SHIFT to go faster, or TAB to go slower.";
+        const positionControls =
+            "WASD or Arrow Keys\nor Click-and-drag.\nUse SHIFT to go faster, or TAB to go slower.";
 
         const controlsSchema: Schema = {
             Position: { value: positionControls, editable: false },

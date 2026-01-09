@@ -1,12 +1,12 @@
 # Main stuff
 
--   Remove controller/joystick controls?
 -   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
 -   Better organized controls?
 -   Places of Interest
     - categorization
 -   FAQ Page
 -   Cron job for updating cache in R2
+-   After-effects like fog or color tweaking
 
 # Possible small additions
 
@@ -20,6 +20,7 @@
 
 # Done!
 
+-   Remove controller/joystick controls (fixed mobile touch controls)
 -   Page title
 -   Add personal-use disclaimer mumbo jumbo to legal
 -   Figure out why it seems like some animations are missing?
