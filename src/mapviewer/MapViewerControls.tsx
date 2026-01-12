@@ -1,5 +1,4 @@
 import { Leva, LevaInputs, button, folder, useControls } from "leva";
-import { Schema } from "leva/dist/declarations/src/types";
 import { memo, useEffect, useState } from "react";
 
 import {
@@ -10,8 +9,7 @@ import {
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { downloadBlob } from "../util/DownloadUtil";
 import { loadCacheFiles } from "./Caches";
-import { ProjectionType } from "./Camera";
-import { ExportResolution, MapViewer } from "./MapViewer";
+import { ExportResolution } from "./MapViewer";
 import { MapViewerRenderer } from "./MapViewerRenderer";
 import {
     MapViewerRendererType,
@@ -24,7 +22,6 @@ import { fetchNpcSpawns, getNpcSpawnsUrl } from "./data/npc/NpcSpawn";
 interface MapViewerControlsProps {
     renderer: MapViewerRenderer;
     hideUi: boolean;
-    cameraZoom: number;
     setRenderer: (renderer: MapViewerRenderer) => void;
     setHideUi: (hideUi: boolean | ((hideUi: boolean) => boolean)) => void;
     setDownloadProgress: (progress: DownloadProgress | undefined) => void;
@@ -34,16 +31,12 @@ export const MapViewerControls = memo(
     ({
         renderer,
         hideUi: hidden,
-        cameraZoom,
         setRenderer,
         setHideUi,
         setDownloadProgress,
     }: MapViewerControlsProps): JSX.Element => {
         const mapViewer = renderer.mapViewer;
 
-        const [projectionType, setProjectionType] = useState<ProjectionType>(
-            mapViewer.camera.projectionType,
-        );
         const [dashedGridLine, setDashedGridLine] = useState<boolean>(
             renderer.gridRenderer.getSettings().dashedLine,
         );
@@ -54,7 +47,7 @@ export const MapViewerControls = memo(
         const positionControls =
             "WASD or Arrow Keys\nor Click-and-drag.\nUse SHIFT to go faster, or TAB to go slower.";
 
-        const controlsSchema: Schema = {
+        const controlsSchema = {
             Position: { value: positionControls, editable: false },
         };
 
@@ -91,20 +84,9 @@ export const MapViewerControls = memo(
             rendererOptions[getRendererName(v)] = v;
         }
 
-        const [, setCameraControls] = useControls(
+        useControls(
             "Camera",
             () => ({
-                ...createCameraControls(mapViewer),
-                "Move Speed": {
-                    value: mapViewer.cameraSpeed,
-                    min: 0.1,
-                    max: 5,
-                    step: 0.1,
-                    onChange: (v: number) => {
-                        mapViewer.cameraSpeed = v;
-                    },
-                    order: 10,
-                },
                 "Rotate Left": button(() => {
                     const currentYaw = mapViewer.camera.getYaw();
                     mapViewer.camera.animateToYaw((currentYaw + 512) & 2047);
@@ -116,7 +98,6 @@ export const MapViewerControls = memo(
                 Controls: folder(controlsSchema, { collapsed: true, order: 999 }),
             }),
             { collapsed: false, order: 0 },
-            [projectionType],
         );
 
         useControls(
@@ -220,13 +201,6 @@ export const MapViewerControls = memo(
             }),
             [renderer, isExportingBattlemap, exportResolution],
         );
-
-        // Sync the Leva zoom slider when zoom changes via scroll wheel
-        useEffect(() => {
-            if (mapViewer.camera.projectionType === ProjectionType.ORTHO) {
-                setCameraControls({ Zoom: cameraZoom } as Parameters<typeof setCameraControls>[0]);
-            }
-        }, [cameraZoom, mapViewer.camera.projectionType, setCameraControls]);
 
         useControls(
             "Grid.Appearance",
@@ -390,31 +364,3 @@ export const MapViewerControls = memo(
         );
     },
 );
-
-function createCameraControls(mapViewer: MapViewer): Schema {
-    if (mapViewer.camera.projectionType === ProjectionType.PERSPECTIVE) {
-        return {
-            FOV: {
-                value: mapViewer.camera.fov,
-                min: 30,
-                max: 140,
-                step: 1,
-                onChange: (v: number) => {
-                    mapViewer.camera.fov = v;
-                },
-            },
-        };
-    } else {
-        return {
-            Zoom: {
-                value: mapViewer.camera.orthoZoom,
-                min: 15,
-                max: 200,
-                step: 1,
-                onChange: (v: number) => {
-                    mapViewer.camera.orthoZoom = v;
-                },
-            },
-        };
-    }
-}

@@ -31,7 +31,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const [hideUi, setHideUi] = useState(false);
     const [fps, setFps] = useState(0);
     const [cameraYaw, setCameraYaw] = useState(mapViewer.camera.getYaw());
-    const [cameraZoom, setCameraZoom] = useState(mapViewer.camera.orthoZoom);
     const [isWorldMapOpen, setWorldMapOpen] = useState<boolean>(false);
     const [isPlacesDialogOpen, setPlacesDialogOpen] = useState<boolean>(false);
 
@@ -54,7 +53,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             if (!hideUi) {
                 setFps(Math.round(renderer.stats.frameTimeFps));
                 setCameraYaw(mapViewer.camera.getYaw());
-                setCameraZoom(mapViewer.camera.orthoZoom);
             }
 
             if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
@@ -174,7 +172,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             <MapViewerControls
                 renderer={renderer}
                 hideUi={hideUi}
-                cameraZoom={cameraZoom}
                 setRenderer={setRenderer}
                 setHideUi={setHideUi}
                 setDownloadProgress={setDownloadProgress}

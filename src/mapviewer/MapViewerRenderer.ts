@@ -129,6 +129,14 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
             camera.orthoZoom = clamp(camera.orthoZoom - deltaScroll, 15, 200);
             camera.updated = true;
         }
+
+        // Pinch zoom (trackpad and mobile)
+        const deltaPinch = inputManager.getDeltaPinchZoom();
+
+        if (deltaPinch !== 0) {
+            camera.orthoZoom = clamp(camera.orthoZoom + deltaPinch, 15, 200);
+            camera.updated = true;
+        }
     }
 
     handleControllerInput(deltaTime: number) {

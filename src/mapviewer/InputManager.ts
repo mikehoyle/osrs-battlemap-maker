@@ -17,6 +17,12 @@ export function getAxisDeadzone(axis: number, zone: number): number {
     }
 }
 
+function getTouchDistance(touch1: Touch, touch2: Touch): number {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
 export class InputManager {
     element?: HTMLElement;
 
@@ -36,6 +42,12 @@ export class InputManager {
     deltaMouseScroll: number = 0;
 
     isTouch: boolean = false;
+
+    // Pinch zoom tracking
+    isPinching: boolean = false;
+    pinchStartDistance: number = 0;
+    pinchLastDistance: number = 0;
+    deltaPinchZoom: number = 0;
 
     pickX: number = -1;
     pickY: number = -1;
@@ -59,10 +71,12 @@ export class InputManager {
         element.addEventListener("mousemove", this.onMouseMove);
         element.addEventListener("mouseup", this.onMouseUp);
         element.addEventListener("mouseleave", this.onMouseLeave);
-        element.addEventListener("wheel", this.onMouseWheel);
+        // Use passive: false to allow preventDefault for trackpad pinch zoom
+        element.addEventListener("wheel", this.onMouseWheel, { passive: false });
 
-        element.addEventListener("touchstart", this.onTouchStart);
-        element.addEventListener("touchmove", this.onTouchMove);
+        // Use passive: false to allow preventDefault for touch events (prevents browser zoom/scroll)
+        element.addEventListener("touchstart", this.onTouchStart, { passive: false });
+        element.addEventListener("touchmove", this.onTouchMove, { passive: false });
         element.addEventListener("touchend", this.onTouchEnd);
 
         element.addEventListener("contextmenu", this.onContextMenu);
@@ -140,6 +154,12 @@ export class InputManager {
         return scroll;
     }
 
+    getDeltaPinchZoom(): number {
+        const pinch = this.deltaPinchZoom;
+        this.deltaPinchZoom = 0;
+        return pinch;
+    }
+
     getGamepad(): Gamepad | null {
         let gamepad: Gamepad | null = null;
         if (this.gamepadIndex !== undefined) {
@@ -208,13 +228,37 @@ export class InputManager {
     };
 
     private onMouseWheel = (event: WheelEvent) => {
-        this.deltaMouseScroll = event.deltaY;
+        // Trackpad pinch gestures fire as wheel events with ctrlKey=true
+        // We need to prevent browser zoom and handle it ourselves
+        if (event.ctrlKey) {
+            event.preventDefault();
+            // Pinch zoom: deltaY is positive when pinching out (zoom in), negative when pinching in
+            // Use a smaller multiplier for smoother trackpad pinch response
+            this.deltaPinchZoom = event.deltaY * 0.5;
+        } else {
+            this.deltaMouseScroll = event.deltaY;
+        }
     };
 
     private onTouchStart = (event: TouchEvent) => {
         if (!this.element) {
             return;
         }
+
+        // Two-finger pinch zoom
+        if (event.touches.length === 2) {
+            event.preventDefault();
+            this.isPinching = true;
+            const distance = getTouchDistance(event.touches[0], event.touches[1]);
+            this.pinchStartDistance = distance;
+            this.pinchLastDistance = distance;
+            // Stop any ongoing drag when starting a pinch
+            this.dragX = -1;
+            this.dragY = -1;
+            return;
+        }
+
+        // Single touch - drag to pan
         const [x, y] = getMousePos(this.element, event.touches[0]);
         this.dragX = x;
         this.dragY = y;
@@ -228,16 +272,56 @@ export class InputManager {
         if (!this.element) {
             return;
         }
-        const [x, y] = getMousePos(this.element, event.touches[0]);
-        this.mouseX = x;
-        this.mouseY = y;
+
+        // Two-finger pinch zoom
+        if (event.touches.length === 2 && this.isPinching) {
+            event.preventDefault();
+            const currentDistance = getTouchDistance(event.touches[0], event.touches[1]);
+            // Calculate delta based on change from last frame, not start
+            // Positive delta = fingers moving apart = zoom in (decrease orthoZoom for larger view)
+            // Negative delta = fingers moving together = zoom out (increase orthoZoom for smaller view)
+            const distanceDelta = this.pinchLastDistance - currentDistance;
+            // Scale the delta - larger movements = faster zoom
+            this.deltaPinchZoom = distanceDelta * 0.5;
+            this.pinchLastDistance = currentDistance;
+            return;
+        }
+
+        // Single touch drag
+        if (event.touches.length === 1 && !this.isPinching) {
+            const [x, y] = getMousePos(this.element, event.touches[0]);
+            this.mouseX = x;
+            this.mouseY = y;
+        }
     };
 
     private onTouchEnd = (event: TouchEvent) => {
-        this.dragX = -1;
-        this.dragY = -1;
-        if (this.element) {
-            this.element.style.cursor = "grab";
+        // If we were pinching and a finger was lifted
+        if (this.isPinching) {
+            // Reset pinch state
+            this.isPinching = false;
+            this.pinchStartDistance = 0;
+            this.pinchLastDistance = 0;
+
+            // If one finger remains, transition to single-touch pan
+            if (event.touches.length === 1 && this.element) {
+                const [x, y] = getMousePos(this.element, event.touches[0]);
+                this.dragX = x;
+                this.dragY = y;
+                this.mouseX = x;
+                this.mouseY = y;
+                this.isTouch = true;
+                return;
+            }
+        }
+
+        // All fingers lifted
+        if (event.touches.length === 0) {
+            this.dragX = -1;
+            this.dragY = -1;
+            if (this.element) {
+                this.element.style.cursor = "grab";
+            }
         }
     };
 
@@ -262,6 +346,10 @@ export class InputManager {
         this.mouseY = -1;
         this.dragX = -1;
         this.dragY = -1;
+        // Also reset pinch state
+        this.isPinching = false;
+        this.pinchStartDistance = 0;
+        this.pinchLastDistance = 0;
     }
 
     onFrameEnd() {
