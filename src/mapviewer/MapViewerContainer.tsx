@@ -108,7 +108,8 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             mapViewer.camera.teleport(place.camera.x, undefined, place.camera.z);
             mapViewer.camera.orthoZoom = place.camera.zoom;
             renderer.gridRenderer.setSettings({
-                automaticGridSize: false,
+                worldX: place.grid.worldX,
+                worldZ: place.grid.worldZ,
                 widthInCells: place.grid.widthInCells,
                 heightInCells: place.grid.heightInCells,
             });

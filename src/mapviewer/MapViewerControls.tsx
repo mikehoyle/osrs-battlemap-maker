@@ -2,9 +2,9 @@ import { Leva, LevaInputs, button, folder, useControls } from "leva";
 import { memo, useEffect, useState } from "react";
 
 import {
-    GridRenderer2D,
     GridSettings,
     MINIMUM_GRID_SIZE,
+    MAXIMUM_GRID_SIZE,
 } from "../components/renderer/GridRenderer2D";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { downloadBlob } from "../util/DownloadUtil";
@@ -51,9 +51,9 @@ export const MapViewerControls = memo(
             Position: { value: positionControls, editable: false },
         };
 
-        const [gridSize, setGridSize] = useState({
-            ...renderer.gridRenderer.maxGridSize,
-            automaticGridSize: renderer.gridRenderer.getSettings().automaticGridSize,
+        const [gridPosition, setGridPosition] = useState({
+            worldX: renderer.gridRenderer.getSettings().worldX,
+            worldZ: renderer.gridRenderer.getSettings().worldZ,
             widthInCells: renderer.gridRenderer.getSettings().widthInCells,
             heightInCells: renderer.gridRenderer.getSettings().heightInCells,
         });
@@ -276,83 +276,73 @@ export const MapViewerControls = memo(
             [dashedGridLine],
         );
 
-        const [, setGridSizeLeva] = useControls(
-            "Grid.Size",
+        const [, setGridPositionLeva] = useControls(
+            "Grid.Position",
             () => ({
-                Automatic: {
-                    value: gridSize.automaticGridSize,
-                    type: LevaInputs.BOOLEAN,
-                    onChange: (value: boolean) => {
-                        renderer.gridRenderer.setSettings({
-                            automaticGridSize: value,
-                        });
+                "World X": {
+                    value: gridPosition.worldX,
+                    step: 1,
+                    onChange: (value: number) => {
+                        const worldX = Math.floor(value);
+                        renderer.gridRenderer.setSettings({ worldX });
+                        setGridPosition((prev) => ({ ...prev, worldX }));
                     },
                     order: 0,
                 },
-                Width: {
-                    value: gridSize.widthInCells,
-                    min: MINIMUM_GRID_SIZE,
-                    max: gridSize.maxWidthInCells,
-                    step: 2,
+                "World Z": {
+                    value: gridPosition.worldZ,
+                    step: 1,
                     onChange: (value: number) => {
-                        const widthInCells =
-                            Math.round(
-                                Math.max(
-                                    MINIMUM_GRID_SIZE,
-                                    Math.min(value, gridSize.maxWidthInCells),
-                                ) / 2,
-                            ) * 2;
-                        renderer.gridRenderer.setSettings({
-                            widthInCells,
-                        });
+                        const worldZ = Math.floor(value);
+                        renderer.gridRenderer.setSettings({ worldZ });
+                        setGridPosition((prev) => ({ ...prev, worldZ }));
                     },
                     order: 1,
                 },
-                Height: {
-                    value: gridSize.heightInCells,
+                Width: {
+                    value: gridPosition.widthInCells,
                     min: MINIMUM_GRID_SIZE,
-                    max: gridSize.maxHeightInCells,
-                    step: 2,
+                    max: MAXIMUM_GRID_SIZE,
+                    step: 1,
                     onChange: (value: number) => {
-                        const heightInCells =
-                            Math.round(
-                                Math.max(
-                                    MINIMUM_GRID_SIZE,
-                                    Math.min(value, gridSize.maxHeightInCells),
-                                ) / 2,
-                            ) * 2;
-                        renderer.gridRenderer.setSettings({
-                            heightInCells,
-                        });
+                        renderer.gridRenderer.setSettings({ widthInCells: value });
+                        setGridPosition((prev) => ({ ...prev, widthInCells: value }));
                     },
                     order: 2,
                 },
+                Height: {
+                    value: gridPosition.heightInCells,
+                    min: MINIMUM_GRID_SIZE,
+                    max: MAXIMUM_GRID_SIZE,
+                    step: 1,
+                    onChange: (value: number) => {
+                        renderer.gridRenderer.setSettings({ heightInCells: value });
+                        setGridPosition((prev) => ({ ...prev, heightInCells: value }));
+                    },
+                    order: 3,
+                },
+                "Center on Camera": button(() => {
+                    const camX = mapViewer.camera.getPosX();
+                    const camZ = mapViewer.camera.getPosZ();
+                    renderer.gridRenderer.centerGridOnPosition(camX, camZ);
+                    const settings = renderer.gridRenderer.getSettings();
+                    setGridPosition({
+                        worldX: settings.worldX,
+                        worldZ: settings.worldZ,
+                        widthInCells: settings.widthInCells,
+                        heightInCells: settings.heightInCells,
+                    });
+                    setGridPositionLeva({
+                        "World X": settings.worldX,
+                        "World Z": settings.worldZ,
+                        Width: settings.widthInCells,
+                        Height: settings.heightInCells,
+                    });
+                }),
             }),
             { collapsed: false, order: 1 },
-            [gridSize],
+            [gridPosition],
         );
-
-        useEffect(() => {
-            return renderer.gridRenderer.onMaxGridSizeChanged((gridSize) => {
-                console.log("Grid size changed", gridSize);
-
-                // It's awkward, but we set the grid size in Leva before AND after the
-                // grid size (max size) update, because max can't go below the current value,
-                // and the setting can't go above the max value.
-
-                setGridSizeLeva({
-                    Automatic: gridSize.automaticGridSize,
-                    Width: gridSize.widthInCells,
-                    Height: gridSize.heightInCells,
-                });
-                setGridSize(() => gridSize);
-                setGridSizeLeva({
-                    Automatic: gridSize.automaticGridSize,
-                    Width: gridSize.widthInCells,
-                    Height: gridSize.heightInCells,
-                });
-            });
-        }, [renderer.gridRenderer, setGridSizeLeva]);
 
         return (
             <Leva

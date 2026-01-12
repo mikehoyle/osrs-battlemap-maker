@@ -16,32 +16,31 @@ export interface GridSettings {
     dashLengthPx: number;
     gapLengthPx: number;
 
-    // Grid Size Config
-    automaticGridSize: boolean;
+    // World position (top-left corner of grid)
+    worldX: number;
+    worldZ: number;
+    // Grid dimensions in cells
     widthInCells: number;
     heightInCells: number;
 }
 
-export interface MaxGridSize {
-    maxWidthInCells: number;
-    maxHeightInCells: number;
-}
-
-export type GridSizeUpdate = MaxGridSize & {
-    automaticGridSize: boolean;
-    widthInCells: number;
-    heightInCells: number;
-};
-
-type MaxGridSizeCallback = (gridSizeUpdate: GridSizeUpdate) => void;
-
-export const MINIMUM_GRID_SIZE: number = 4;
+export const MINIMUM_GRID_SIZE: number = 2;
+export const MAXIMUM_GRID_SIZE: number = 150;
 
 const GRID_SETTINGS_STORAGE_KEY = "osrs-battlemap-grid-settings";
 
 type PersistedGridSettings = Pick<
     GridSettings,
-    "enabled" | "widthPx" | "color" | "dashedLine" | "dashLengthPx" | "gapLengthPx"
+    | "enabled"
+    | "widthPx"
+    | "color"
+    | "dashedLine"
+    | "dashLengthPx"
+    | "gapLengthPx"
+    | "worldX"
+    | "worldZ"
+    | "widthInCells"
+    | "heightInCells"
 >;
 
 export class GridRenderer2D {
@@ -57,22 +56,11 @@ export class GridRenderer2D {
         dashedLine: false,
         dashLengthPx: 5,
         gapLengthPx: 5,
-        automaticGridSize: true,
-        // Defaults set high because they should be automatically shrunk on draw
-        widthInCells: 100,
-        heightInCells: 100,
+        worldX: 3200,
+        worldZ: 3200,
+        widthInCells: 30,
+        heightInCells: 30,
     };
-
-    // Grid can't exceed that which fits on the screen (these default values will shrink
-    // on draw)
-    maxGridSize: MaxGridSize = {
-        maxWidthInCells: 100,
-        maxHeightInCells: 100,
-    };
-
-    // This can probably be removed, given it never has any effect
-    private worldGridCellSize: number = 1;
-    private maxGridSizeChangedListeners: Set<MaxGridSizeCallback> = new Set();
 
     // Static vector/matrix for temporary calculations
     private static tempVec4: vec4 = vec4.create();
@@ -108,6 +96,10 @@ export class GridRenderer2D {
                 dashedLine: this.settings.dashedLine,
                 dashLengthPx: this.settings.dashLengthPx,
                 gapLengthPx: this.settings.gapLengthPx,
+                worldX: this.settings.worldX,
+                worldZ: this.settings.worldZ,
+                widthInCells: this.settings.widthInCells,
+                heightInCells: this.settings.heightInCells,
             };
             localStorage.setItem(GRID_SETTINGS_STORAGE_KEY, JSON.stringify(toSave));
         } catch {
@@ -116,32 +108,19 @@ export class GridRenderer2D {
     }
 
     setSettings(newSettings: Partial<GridSettings>): void {
-        const oldSettings = this.settings;
         this.settings = { ...this.settings, ...newSettings };
+
+        // Clamp grid dimensions to valid range
+        this.settings.widthInCells = Math.max(
+            MINIMUM_GRID_SIZE,
+            Math.min(MAXIMUM_GRID_SIZE, this.settings.widthInCells),
+        );
+        this.settings.heightInCells = Math.max(
+            MINIMUM_GRID_SIZE,
+            Math.min(MAXIMUM_GRID_SIZE, this.settings.heightInCells),
+        );
+
         this.saveSettingsToStorage();
-
-        if (!oldSettings.automaticGridSize && newSettings.automaticGridSize) {
-            this.settings.widthInCells = this.maxGridSize.maxWidthInCells;
-            this.settings.heightInCells = this.maxGridSize.maxHeightInCells;
-            this.setMaxGridSize(
-                this.maxGridSize.maxWidthInCells,
-                this.maxGridSize.maxHeightInCells,
-            );
-            return;
-        }
-
-        if (
-            this.settings.automaticGridSize &&
-            (this.settings.widthInCells < this.maxGridSize.maxWidthInCells ||
-                this.settings.heightInCells > this.maxGridSize.maxHeightInCells)
-        ) {
-            this.settings.automaticGridSize = false;
-            this.setMaxGridSize(
-                this.maxGridSize.maxWidthInCells,
-                this.maxGridSize.maxHeightInCells,
-            );
-            return;
-        }
     }
 
     getSettings(): GridSettings {
@@ -149,53 +128,15 @@ export class GridRenderer2D {
     }
 
     /**
-     * Directly restores settings and maxGridSize without side effects.
-     * Used for export to restore state after temporary modifications.
+     * Centers the grid on the given world position
      */
-    restoreState(settings: GridSettings, maxGridSize: MaxGridSize): void {
-        this.settings = { ...settings };
-        this.maxGridSize = { ...maxGridSize };
-
-        // Notify listeners so UI updates to reflect restored state
-        for (const listener of this.maxGridSizeChangedListeners) {
-            listener({
-                maxWidthInCells: maxGridSize.maxWidthInCells,
-                maxHeightInCells: maxGridSize.maxHeightInCells,
-                automaticGridSize: settings.automaticGridSize,
-                widthInCells: settings.widthInCells,
-                heightInCells: settings.heightInCells,
-            });
-        }
-    }
-
-    getMaxGridSize(): MaxGridSize {
-        return this.maxGridSize;
-    }
-
-    onMaxGridSizeChanged(callback: MaxGridSizeCallback): () => void {
-        this.maxGridSizeChangedListeners.add(callback);
-        return () => this.maxGridSizeChangedListeners.delete(callback);
-    }
-
-    setMaxGridSize(maxWidthInCells: number, maxHeightInCells: number): void {
-        this.maxGridSize = {
-            maxWidthInCells,
-            maxHeightInCells,
-        };
-        if (this.settings.automaticGridSize) {
-            this.settings.widthInCells = maxWidthInCells;
-            this.settings.heightInCells = maxHeightInCells;
-        }
-
-        for (const listener of this.maxGridSizeChangedListeners) {
-            listener({
-                maxWidthInCells,
-                maxHeightInCells,
-                automaticGridSize: this.settings.automaticGridSize,
-                widthInCells: this.settings.widthInCells,
-                heightInCells: this.settings.heightInCells,
-            });
-        }
+    centerGridOnPosition(worldX: number, worldZ: number): void {
+        // worldX/worldZ is top-left corner
+        // Grid extends right (+X) and down (-Z)
+        this.setSettings({
+            worldX: Math.floor(worldX - this.settings.widthInCells / 2),
+            worldZ: Math.floor(worldZ + this.settings.heightInCells / 2),
+        });
     }
 
     private projectWorldToScreen(
@@ -234,59 +175,37 @@ export class GridRenderer2D {
         const ctx = overlayCanvas.getContext("2d");
         if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
             // Clear if disabled or not in Ortho mode
-            // (the latter should never happen in this version, but who knows)
             if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             return;
         }
 
-        // --- Camera and Canvas Info ---
         const width = overlayCanvas.width;
         const height = overlayCanvas.height;
         const viewProjMatrix = camera.viewProjMatrix;
-        const gridSize = this.worldGridCellSize;
-        const camPos = camera.pos;
         const zoom = camera.orthoZoom;
 
         // Calculate scale factor to match export resolution (base = 64px per cell)
-        // Cell size in canvas pixels = orthoZoom / 2
-        // Scale factor = actual cell size / base cell size (64px)
         const cellSizePx = zoom / 2;
         const scaleFactor = cellSizePx / 64;
 
         ctx.clearRect(0, 0, width, height);
+
+        // Grid world bounds (from settings)
+        // X increases going east (right), Z increases going north (up)
+        // worldX/worldZ is top-left corner, so grid extends right (+X) and down (-Z)
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Draw grid lines
         ctx.strokeStyle = this.cssColor;
         ctx.lineWidth = this.settings.widthPx * scaleFactor;
 
-        const baseHalfWorldSpanX = width / zoom;
-        const baseHalfWorldSpanY = height / zoom;
-
-        // Account for camera yaw rotation when calculating world bounds.
-        // When the camera is rotated, the visible area is a rotated rectangle.
-        // We need to expand the axis-aligned bounds to cover the rotated view.
-        const yaw = (camera.getYaw() - 1024) * RS_TO_RADIANS;
-        const cosYaw = Math.abs(Math.cos(yaw));
-        const sinYaw = Math.abs(Math.sin(yaw));
-
-        // The rotated rectangle's axis-aligned bounding box dimensions
-        const halfWorldSpanX = baseHalfWorldSpanX * cosYaw + baseHalfWorldSpanY * sinYaw;
-        const halfWorldSpanY = baseHalfWorldSpanX * sinYaw + baseHalfWorldSpanY * cosYaw;
-
-        const camX = camPos[0];
-        const camZ = camPos[2];
-
-        const minX = camX - halfWorldSpanX;
-        const maxX = camX + halfWorldSpanX;
-        const minZ = camZ - halfWorldSpanY;
-        const maxZ = camZ + halfWorldSpanY;
-
-        // Find the first grid line that is a multiple of gridSize
-        let firstX = Math.floor(minX / gridSize) * gridSize;
-        let firstZ = Math.floor(minZ / gridSize) * gridSize;
-
         // Vertical Lines (X-axis)
-        for (let Xw = firstX; Xw <= maxX + gridSize; Xw += gridSize) {
-            const p1 = this.projectWorldToScreen(Xw, 0, maxZ, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
+        for (let Xw = gridMinX; Xw <= gridMaxX; Xw++) {
+            const p1 = this.projectWorldToScreen(Xw, 0, gridMaxZ, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(Xw, 0, gridMinZ, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
                 this.drawLine(ctx, p1, p2, scaleFactor);
@@ -294,59 +213,55 @@ export class GridRenderer2D {
         }
 
         // Horizontal Lines (Z-axis)
-        for (let Zw = firstZ; Zw <= maxZ + gridSize; Zw += gridSize) {
-            const p1 = this.projectWorldToScreen(minX, 0, Zw, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
+        for (let Zw = gridMinZ; Zw <= gridMaxZ; Zw++) {
+            const p1 = this.projectWorldToScreen(gridMinX, 0, Zw, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(gridMaxX, 0, Zw, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
                 this.drawLine(ctx, p1, p2, scaleFactor);
             }
         }
 
-        // Use base (non-rotated) spans for max grid size since this represents
-        // the logical grid dimensions, not the expanded drawing area
-        const maxWidthInCells = Math.floor(baseHalfWorldSpanX) * 2;
-        const maxHeightInCells = Math.floor(baseHalfWorldSpanY) * 2;
-        if (
-            maxWidthInCells !== this.maxGridSize.maxWidthInCells ||
-            maxHeightInCells !== this.maxGridSize.maxHeightInCells
-        ) {
-            this.setMaxGridSize(maxWidthInCells, maxHeightInCells);
-        }
+        // Draw grey overlay for non-grid area
+        this.drawGreyOverlay(ctx, viewProjMatrix, width, height);
+    }
 
-        // Draw the border rect which occludes the not-in-play grid cells
-        const selectedGridBounds = this.getSelectedGridBounds(overlayCanvas, camera);
+    /**
+     * Draws a semi-transparent grey overlay over the non-grid area
+     */
+    private drawGreyOverlay(
+        ctx: CanvasRenderingContext2D,
+        viewProjMatrix: mat4,
+        width: number,
+        height: number,
+    ): void {
+        // Project the four corners of the grid to screen space
+        // X increases going east (right), Z increases going north (up)
+        // worldX/worldZ is top-left corner, so grid extends right (+X) and down (-Z)
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
 
+        // gridMaxZ is north (top of screen), gridMinZ is south (bottom of screen)
+        const topLeft = this.projectWorldToScreen(gridMinX, 0, gridMaxZ, viewProjMatrix, width, height);
+        const topRight = this.projectWorldToScreen(gridMaxX, 0, gridMaxZ, viewProjMatrix, width, height);
+        const bottomLeft = this.projectWorldToScreen(gridMinX, 0, gridMinZ, viewProjMatrix, width, height);
+        const bottomRight = this.projectWorldToScreen(gridMaxX, 0, gridMinZ, viewProjMatrix, width, height);
+
+        // Draw semi-transparent overlay with grid area cut out
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.beginPath();
         ctx.rect(0, 0, width, height);
-        ctx.moveTo(selectedGridBounds.topLeft[0], selectedGridBounds.topLeft[1]);
-        ctx.rect(
-            selectedGridBounds.topLeft[0],
-            selectedGridBounds.topLeft[1],
-            selectedGridBounds.width,
-            selectedGridBounds.height,
-        );
-        // Even-odd will fill the outer "border" rect
+
+        // Cut out the grid area (draw counter-clockwise for even-odd fill)
+        ctx.moveTo(topLeft[0], topLeft[1]);
+        ctx.lineTo(topRight[0], topRight[1]);
+        ctx.lineTo(bottomRight[0], bottomRight[1]);
+        ctx.lineTo(bottomLeft[0], bottomLeft[1]);
+        ctx.closePath();
+
         ctx.fill("evenodd");
-    }
-
-    getSelectedGridBounds(
-        overlayCanvas: HTMLCanvasElement,
-        camera: Camera,
-    ): { topLeft: vec2; width: number; height: number } {
-        const width = overlayCanvas.width;
-        const height = overlayCanvas.height;
-        const cellSizePx = width / ((width / camera.orthoZoom) * 2 * this.worldGridCellSize);
-
-        return {
-            topLeft: [
-                (width - this.settings.widthInCells * cellSizePx) / 2,
-                (height - this.settings.heightInCells * cellSizePx) / 2,
-            ],
-            width: this.settings.widthInCells * cellSizePx,
-            height: this.settings.heightInCells * cellSizePx,
-        };
     }
 
     private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2, scaleFactor: number) {
@@ -373,8 +288,9 @@ export class GridRenderer2D {
     /**
      * Renders the grid to a provided canvas at a specific scale.
      * Used for export functionality where we need the grid at a different resolution.
+     * Camera should be centered on the grid for export.
      * @param canvas The canvas to render to
-     * @param camera The camera to use for projection
+     * @param camera The camera to use for projection (should be centered on grid)
      * @param scaleFactor Scale factor for line widths (e.g., 4 for 256px resolution vs 64px base)
      */
     renderToCanvas(canvas: HTMLCanvasElement, camera: Camera, scaleFactor: number = 1): void {
@@ -386,60 +302,40 @@ export class GridRenderer2D {
         const width = canvas.width;
         const height = canvas.height;
         const viewProjMatrix = camera.viewProjMatrix;
-        const gridSize = this.worldGridCellSize;
-        const camPos = camera.pos;
-        const zoom = camera.orthoZoom;
 
         ctx.clearRect(0, 0, width, height);
         ctx.strokeStyle = this.cssColor;
-        // Scale line width proportionally with resolution
         ctx.lineWidth = this.settings.widthPx * scaleFactor;
 
-        const baseHalfWorldSpanX = width / zoom;
-        const baseHalfWorldSpanY = height / zoom;
-
-        const yaw = (camera.getYaw() - 1024) * RS_TO_RADIANS;
-        const cosYaw = Math.abs(Math.cos(yaw));
-        const sinYaw = Math.abs(Math.sin(yaw));
-
-        const halfWorldSpanX = baseHalfWorldSpanX * cosYaw + baseHalfWorldSpanY * sinYaw;
-        const halfWorldSpanY = baseHalfWorldSpanX * sinYaw + baseHalfWorldSpanY * cosYaw;
-
-        const camX = camPos[0];
-        const camZ = camPos[2];
-
-        const minX = camX - halfWorldSpanX;
-        const maxX = camX + halfWorldSpanX;
-        const minZ = camZ - halfWorldSpanY;
-        const maxZ = camZ + halfWorldSpanY;
-
-        let firstX = Math.floor(minX / gridSize) * gridSize;
-        let firstZ = Math.floor(minZ / gridSize) * gridSize;
+        // Grid world bounds (from settings)
+        // X increases going east (right), Z increases going north (up)
+        // worldX/worldZ is top-left corner, so grid extends right (+X) and down (-Z)
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
 
         // Vertical Lines (X-axis)
-        for (let Xw = firstX; Xw <= maxX + gridSize; Xw += gridSize) {
-            const p1 = this.projectWorldToScreen(Xw, 0, maxZ, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(Xw, 0, minZ, viewProjMatrix, width, height);
+        for (let Xw = gridMinX; Xw <= gridMaxX; Xw++) {
+            const p1 = this.projectWorldToScreen(Xw, 0, gridMaxZ, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(Xw, 0, gridMinZ, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLineScaled(ctx, p1, p2, scaleFactor);
+                this.drawLine(ctx, p1, p2, scaleFactor);
             }
         }
 
         // Horizontal Lines (Z-axis)
-        for (let Zw = firstZ; Zw <= maxZ + gridSize; Zw += gridSize) {
-            const p1 = this.projectWorldToScreen(minX, 0, Zw, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(maxX, 0, Zw, viewProjMatrix, width, height);
+        for (let Zw = gridMinZ; Zw <= gridMaxZ; Zw++) {
+            const p1 = this.projectWorldToScreen(gridMinX, 0, Zw, viewProjMatrix, width, height);
+            const p2 = this.projectWorldToScreen(gridMaxX, 0, Zw, viewProjMatrix, width, height);
 
             if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLineScaled(ctx, p1, p2, scaleFactor);
+                this.drawLine(ctx, p1, p2, scaleFactor);
             }
         }
-    }
 
-    // Note: drawLineScaled is kept as an alias for renderToCanvas compatibility
-    private drawLineScaled(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2, scaleFactor: number) {
-        this.drawLine(ctx, p1, p2, scaleFactor);
+        // Note: No grey overlay for export - the grid covers the full export area
     }
 
     get widthInCells(): number {
@@ -451,8 +347,10 @@ export class GridRenderer2D {
     }
 
     get gridCenter(): vec2 {
-        // The grid is centered on the camera, so we use the camera position
-        // This will be calculated when we have access to the camera
-        return [0, 0];
+        // worldX/worldZ is top-left corner, grid extends right (+X) and down (-Z)
+        return [
+            this.settings.worldX + this.settings.widthInCells / 2,
+            this.settings.worldZ - this.settings.heightInCells / 2,
+        ];
     }
 }

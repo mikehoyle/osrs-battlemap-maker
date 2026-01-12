@@ -243,15 +243,11 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const originalOverlayHeight = this.overlayCanvas.height;
         const originalOrthoZoom = this.mapViewer.camera.orthoZoom;
 
-        // Save grid state (settings and maxGridSize get modified during render via onFrameEnd -> draw)
-        const originalGridSettings = { ...this.gridRenderer.getSettings() };
-        const originalMaxGridSize = { ...this.gridRenderer.getMaxGridSize() };
-
         // Clear any pending scroll input to prevent it from modifying orthoZoom during render
         // This fixes a race condition where user scroll events could corrupt export resolution
         this.mapViewer.inputManager.getDeltaMouseScroll();
 
-        // Temporarily resize BOTH canvases (overlay must match or grid settings get corrupted)
+        // Temporarily resize BOTH canvases
         this.canvas.width = targetWidth;
         this.canvas.height = targetHeight;
         this.overlayCanvas.width = targetWidth;
@@ -299,9 +295,6 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         this.mapViewer.camera.orthoZoom = originalOrthoZoom;
         this.mapViewer.camera.updated = true;
         this.mapViewer.camera.update(originalWidth, originalHeight);
-
-        // Restore grid state without side effects
-        this.gridRenderer.restoreState(originalGridSettings, originalMaxGridSize);
 
         return bitmap;
     }

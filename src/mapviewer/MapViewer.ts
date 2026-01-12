@@ -359,8 +359,9 @@ export class MapViewer {
 
     async exportBattlemap(resolution: ExportResolution = 128): Promise<Blob | null> {
         const gridRenderer = this.renderer.gridRenderer;
-        const gridWidthInCells = gridRenderer.widthInCells;
-        const gridHeightInCells = gridRenderer.heightInCells;
+        const settings = gridRenderer.getSettings();
+        const gridWidthInCells = settings.widthInCells;
+        const gridHeightInCells = settings.heightInCells;
 
         // Calculate target dimensions based on resolution
         const targetWidth = gridWidthInCells * resolution;
@@ -370,12 +371,27 @@ export class MapViewer {
         // Formula: cellSizePx = orthoZoom / 2, so orthoZoom = resolution * 2
         const targetOrthoZoom = resolution * 2;
 
+        // Save current camera state
+        const originalCamPos = vec3.clone(this.camera.pos);
+        const originalOrthoZoom = this.camera.orthoZoom;
+
+        // Move camera to grid center for export
+        // worldX/worldZ is top-left corner, grid extends right (+X) and down (-Z)
+        const gridCenterX = settings.worldX + gridWidthInCells / 2;
+        const gridCenterZ = settings.worldZ - gridHeightInCells / 2;
+        this.camera.teleport(gridCenterX, undefined, gridCenterZ);
+
         // Render the scene at the target resolution and get the bitmap
         const mapBitmap = await this.renderer.renderForExport(
             targetWidth,
             targetHeight,
             targetOrthoZoom,
         );
+
+        // Restore camera position
+        this.camera.teleport(originalCamPos[0], originalCamPos[1], originalCamPos[2]);
+        this.camera.orthoZoom = originalOrthoZoom;
+        this.camera.updated = true;
 
         // Create the final export canvas
         const exportCanvas = document.createElement("canvas");
@@ -395,17 +411,14 @@ export class MapViewer {
         // Calculate scale factor for line widths (base is 64px per cell)
         const scaleFactor = resolution / 64;
 
-        // Temporarily update camera for grid rendering
-        const originalOrthoZoom = this.camera.orthoZoom;
-        this.camera.orthoZoom = targetOrthoZoom;
-        this.camera.update(targetWidth, targetHeight);
+        // Create a temporary camera state for grid rendering at export position
+        const exportCamera = this.createCamera();
+        exportCamera.teleport(gridCenterX, undefined, gridCenterZ);
+        exportCamera.orthoZoom = targetOrthoZoom;
+        exportCamera.update(targetWidth, targetHeight);
 
         // Render the grid at the export resolution
-        gridRenderer.renderToCanvas(gridCanvas, this.camera, scaleFactor);
-
-        // Restore camera
-        this.camera.orthoZoom = originalOrthoZoom;
-        this.camera.update(this.renderer.canvas.width, this.renderer.canvas.height);
+        gridRenderer.renderToCanvas(gridCanvas, exportCamera, scaleFactor);
 
         // Composite the grid overlay onto the export canvas
         ctx.drawImage(gridCanvas, 0, 0);
