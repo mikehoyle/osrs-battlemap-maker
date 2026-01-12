@@ -16,6 +16,9 @@ import { MapViewerControls } from "./MapViewerControls";
 import { MapViewerRenderer } from "./MapViewerRenderer";
 import { PlaceOfInterest } from "./PlacesOfInterest";
 
+// Set to true to show the FPS counter (for debugging)
+const SHOW_FPS_COUNTER = false;
+
 interface MapViewerContainerProps {
     mapViewer: MapViewer;
 }
@@ -191,8 +194,12 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                             loadMapImageUrl={loadMinimapImageUrl}
                         />
 
-                        <div className="fps-counter content-text">{fps}</div>
-                        <div className="fps-counter content-text">{mapViewer.debugText}</div>
+                        {SHOW_FPS_COUNTER && (
+                            <div className="fps-counter content-text">{fps}</div>
+                        )}
+                        {SHOW_FPS_COUNTER && (
+                            <div className="fps-counter content-text">{mapViewer.debugText}</div>
+                        )}
                     </div>
                     <WorldMapModal
                         isOpen={isWorldMapOpen}
