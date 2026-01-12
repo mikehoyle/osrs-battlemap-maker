@@ -1,6 +1,13 @@
 import { Schema } from "leva/dist/declarations/src/types";
 
-import { GridRenderer2D, GridSettings } from "../components/renderer/GridRenderer2D";
+import {
+    getCursorForEdge,
+    GridEdgeProximity,
+    GridRenderer2D,
+    GridSettings,
+    MAXIMUM_GRID_SIZE,
+    MINIMUM_GRID_SIZE,
+} from "../components/renderer/GridRenderer2D";
 import { Renderer } from "../components/renderer/Renderer";
 import { SceneBuilder } from "../rs/scene/SceneBuilder";
 import { clamp } from "../util/MathUtil";
@@ -8,6 +15,16 @@ import { getAxisDeadzone } from "./InputManager";
 import { MapManager, MapSquare } from "./MapManager";
 import { MapViewer } from "./MapViewer";
 import { MapViewerRendererType } from "./MapViewerRenderers";
+
+// Stores the initial state when a grid resize drag begins
+interface GridResizeStart {
+    dragX: number;
+    dragY: number;
+    worldX: number;
+    worldZ: number;
+    widthInCells: number;
+    heightInCells: number;
+}
 
 export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends Renderer {
     abstract type: MapViewerRendererType;
@@ -18,6 +35,10 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
     // Export render dimensions - when set, render() should use these instead of app dimensions
     protected exportRenderWidth: number | null = null;
     protected exportRenderHeight: number | null = null;
+
+    // Tracks the starting state of a grid resize operation
+    // This allows calculating total delta from drag start, avoiding per-frame rounding issues
+    private gridResizeStart: GridResizeStart | null = null;
 
     constructor(public mapViewer: MapViewer) {
         super();
@@ -113,14 +134,62 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const inputManager = this.mapViewer.inputManager;
         const camera = this.mapViewer.camera;
 
-        // mouse/touch controls - drag to pan
-        const deltaMouseX = inputManager.getDeltaMouseX();
-        const deltaMouseY = inputManager.getDeltaMouseY();
+        // Check for grid edge proximity and update cursor when not dragging
+        // Use CSS pixel dimensions (clientWidth/Height) not canvas pixel dimensions (width/height)
+        // because mouse coordinates from getMousePos are in CSS pixels
+        if (!inputManager.isDragging() && inputManager.isFocused()) {
+            const edgeProximity = this.gridRenderer.getEdgeProximity(
+                inputManager.mouseX,
+                inputManager.mouseY,
+                camera,
+                this.canvas.clientWidth,
+                this.canvas.clientHeight,
+            );
+            inputManager.setCursor(getCursorForEdge(edgeProximity));
 
-        if (deltaMouseX !== 0 || deltaMouseY !== 0) {
-            // Pan camera - scale inversely with zoom so it feels like dragging the map
-            const panScale = 4 / camera.orthoZoom;
-            camera.move(-deltaMouseX * panScale, 0, deltaMouseY * panScale);
+            // Store edge proximity for potential resize on next mousedown
+            // This is checked in the mousedown handler to decide resize vs pan
+            if (edgeProximity) {
+                inputManager.startGridResize(edgeProximity);
+            } else {
+                inputManager.stopGridResize();
+            }
+
+            // Clear resize start state when not dragging
+            this.gridResizeStart = null;
+        }
+
+        // Handle grid resize drag
+        if (inputManager.isDragging() && inputManager.isResizingGrid()) {
+            // Initialize resize start state on first frame of drag
+            if (!this.gridResizeStart) {
+                const settings = this.gridRenderer.getSettings();
+                this.gridResizeStart = {
+                    dragX: inputManager.dragX,
+                    dragY: inputManager.dragY,
+                    worldX: settings.worldX,
+                    worldZ: settings.worldZ,
+                    widthInCells: settings.widthInCells,
+                    heightInCells: settings.heightInCells,
+                };
+            }
+
+            // Calculate total delta from the start of the drag (not per-frame delta)
+            // This avoids rounding errors when converting small pixel movements to grid cells
+            const totalDeltaX = this.gridResizeStart.dragX - inputManager.mouseX;
+            const totalDeltaY = this.gridResizeStart.dragY - inputManager.mouseY;
+
+            this.handleGridResize(totalDeltaX, totalDeltaY, inputManager.resizingEdge!);
+        } else if (inputManager.isDragging()) {
+            // Normal camera pan mode
+            const deltaMouseX = inputManager.getDeltaMouseX();
+            const deltaMouseY = inputManager.getDeltaMouseY();
+
+            if (deltaMouseX !== 0 || deltaMouseY !== 0) {
+                // Pan camera - scale inversely with zoom so it feels like dragging the map
+                const panScale = 4 / camera.orthoZoom;
+                camera.move(-deltaMouseX * panScale, 0, deltaMouseY * panScale);
+            }
         }
 
         const deltaScroll = inputManager.getDeltaMouseScroll();
@@ -137,6 +206,90 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
             camera.orthoZoom = clamp(camera.orthoZoom + deltaPinch, 15, 200);
             camera.updated = true;
         }
+    }
+
+    /**
+     * Handles grid resize based on which edge is being dragged.
+     * Converts screen delta to world delta and adjusts grid settings accordingly.
+     * Uses gridResizeStart to calculate new positions from the initial state,
+     * avoiding cumulative rounding errors.
+     */
+    private handleGridResize(
+        totalDeltaScreenX: number,
+        totalDeltaScreenY: number,
+        edge: GridEdgeProximity,
+    ): void {
+        if (!this.gridResizeStart) return;
+
+        const camera = this.mapViewer.camera;
+        const startSettings = this.gridResizeStart;
+
+        // Convert total screen delta to world delta
+        const { deltaWorldX, deltaWorldZ } = this.gridRenderer.screenDeltaToWorldDelta(
+            totalDeltaScreenX,
+            totalDeltaScreenY,
+            camera,
+        );
+
+        // Start from the initial settings at drag start
+        // Grid bounds:
+        // gridMinX = worldX (left edge)
+        // gridMaxX = worldX + widthInCells (right edge)
+        // gridMinZ = worldZ - heightInCells (bottom/south edge)
+        // gridMaxZ = worldZ (top/north edge)
+
+        let newWorldX = startSettings.worldX;
+        let newWorldZ = startSettings.worldZ;
+        let newWidth = startSettings.widthInCells;
+        let newHeight = startSettings.heightInCells;
+
+        // Handle horizontal edges (left/right) - affect X and width
+        if (edge.left) {
+            // Moving left edge: worldX changes, width adjusts to keep right edge fixed
+            const rightEdge = startSettings.worldX + startSettings.widthInCells;
+            newWorldX = Math.round(startSettings.worldX + deltaWorldX);
+            newWidth = rightEdge - newWorldX;
+        }
+        if (edge.right) {
+            // Moving right edge: width changes, worldX stays fixed
+            newWidth = Math.round(startSettings.widthInCells + deltaWorldX);
+        }
+
+        // Handle vertical edges (top/bottom) - affect Z and height
+        if (edge.top) {
+            // Moving top (north) edge: worldZ changes, height adjusts to keep bottom edge fixed
+            const bottomEdge = startSettings.worldZ - startSettings.heightInCells;
+            newWorldZ = Math.round(startSettings.worldZ + deltaWorldZ);
+            newHeight = newWorldZ - bottomEdge;
+        }
+        if (edge.bottom) {
+            // Moving bottom (south) edge: height changes, worldZ stays fixed
+            newHeight = Math.round(startSettings.heightInCells - deltaWorldZ);
+        }
+
+        // Clamp dimensions to valid range
+        newWidth = clamp(newWidth, MINIMUM_GRID_SIZE, MAXIMUM_GRID_SIZE);
+        newHeight = clamp(newHeight, MINIMUM_GRID_SIZE, MAXIMUM_GRID_SIZE);
+
+        // If clamping affected width, adjust worldX for left edge to keep right edge fixed
+        if (edge.left) {
+            const rightEdge = startSettings.worldX + startSettings.widthInCells;
+            newWorldX = rightEdge - newWidth;
+        }
+
+        // If clamping affected height, adjust worldZ for top edge to keep bottom edge fixed
+        if (edge.top) {
+            const bottomEdge = startSettings.worldZ - startSettings.heightInCells;
+            newWorldZ = bottomEdge + newHeight;
+        }
+
+        // Apply changes
+        this.gridRenderer.setSettings({
+            worldX: newWorldX,
+            worldZ: newWorldZ,
+            widthInCells: newWidth,
+            heightInCells: newHeight,
+        });
     }
 
     handleControllerInput(deltaTime: number) {

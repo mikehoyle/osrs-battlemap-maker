@@ -1,5 +1,7 @@
 import { vec2 } from "gl-matrix";
 
+import { GridEdgeProximity } from "../components/renderer/GridRenderer2D";
+
 export function getMousePos(container: HTMLElement, event: MouseEvent | Touch): vec2 {
     const rect = container.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -53,6 +55,12 @@ export class InputManager {
     pickY: number = -1;
 
     gamepadIndex?: number;
+
+    // Grid edge resize tracking
+    // When resizing, which edges are being dragged
+    resizingEdge: GridEdgeProximity | null = null;
+    // The current cursor style (managed externally based on edge proximity)
+    private currentCursor: string = "grab";
 
     init(element: HTMLElement) {
         if (!this.element) {
@@ -123,6 +131,29 @@ export class InputManager {
 
     isDragging(): boolean {
         return this.dragX !== -1 && this.dragY !== -1;
+    }
+
+    isResizingGrid(): boolean {
+        return this.resizingEdge !== null;
+    }
+
+    startGridResize(edge: GridEdgeProximity): void {
+        this.resizingEdge = edge;
+    }
+
+    stopGridResize(): void {
+        this.resizingEdge = null;
+    }
+
+    /**
+     * Sets the cursor style. Call this to update cursor based on hover state.
+     * The cursor will be managed by the renderer based on edge proximity.
+     */
+    setCursor(cursor: string): void {
+        if (this.element && this.currentCursor !== cursor) {
+            this.currentCursor = cursor;
+            this.element.style.cursor = cursor;
+        }
     }
 
     isFocused(): boolean {
@@ -198,7 +229,11 @@ export class InputManager {
         this.dragY = y;
         this.mouseX = x;
         this.mouseY = y;
-        this.element.style.cursor = "grabbing";
+        // Note: cursor style is managed by the renderer based on resize vs pan mode
+        // Only set to grabbing if we're not about to resize (renderer will override if needed)
+        if (!this.resizingEdge) {
+            this.setCursor("grabbing");
+        }
     };
 
     private onMouseMove = (event: MouseEvent) => {
@@ -215,16 +250,14 @@ export class InputManager {
     private onMouseUp = (event: MouseEvent) => {
         this.dragX = -1;
         this.dragY = -1;
-        if (this.element) {
-            this.element.style.cursor = "grab";
-        }
+        this.resizingEdge = null;
+        // Reset cursor - renderer will update on next frame if near edge
+        this.setCursor("grab");
     };
 
     private onMouseLeave = (event: MouseEvent) => {
         this.resetMouse();
-        if (this.element) {
-            this.element.style.cursor = "grab";
-        }
+        this.setCursor("grab");
     };
 
     private onMouseWheel = (event: WheelEvent) => {
@@ -265,7 +298,7 @@ export class InputManager {
         this.mouseX = x;
         this.mouseY = y;
         this.isTouch = true;
-        this.element.style.cursor = "grabbing";
+        this.setCursor("grabbing");
     };
 
     private onTouchMove = (event: TouchEvent) => {
@@ -319,9 +352,8 @@ export class InputManager {
         if (event.touches.length === 0) {
             this.dragX = -1;
             this.dragY = -1;
-            if (this.element) {
-                this.element.style.cursor = "grab";
-            }
+            this.resizingEdge = null;
+            this.setCursor("grab");
         }
     };
 
@@ -350,6 +382,8 @@ export class InputManager {
         this.isPinching = false;
         this.pinchStartDistance = 0;
         this.pinchLastDistance = 0;
+        // Reset grid resize state
+        this.resizingEdge = null;
     }
 
     onFrameEnd() {

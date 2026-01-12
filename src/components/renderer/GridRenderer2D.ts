@@ -24,6 +24,36 @@ export interface GridSettings {
     heightInCells: number;
 }
 
+/**
+ * Flags indicating which grid edges the mouse is near.
+ * Multiple flags can be set for corners.
+ */
+export interface GridEdgeProximity {
+    top: boolean; // North edge (gridMaxZ)
+    bottom: boolean; // South edge (gridMinZ)
+    left: boolean; // West edge (gridMinX)
+    right: boolean; // East edge (gridMaxX)
+}
+
+/**
+ * Get the appropriate cursor style for a given edge proximity state.
+ */
+export function getCursorForEdge(edge: GridEdgeProximity | null): string {
+    if (!edge) return "grab";
+
+    const { top, bottom, left, right } = edge;
+
+    // Corners
+    if ((top && left) || (bottom && right)) return "nwse-resize";
+    if ((top && right) || (bottom && left)) return "nesw-resize";
+
+    // Single edges
+    if (top || bottom) return "ns-resize";
+    if (left || right) return "ew-resize";
+
+    return "grab";
+}
+
 export const MINIMUM_GRID_SIZE: number = 2;
 export const MAXIMUM_GRID_SIZE: number = 150;
 
@@ -171,6 +201,170 @@ export class GridRenderer2D {
         return [screenX, screenY];
     }
 
+    /**
+     * Detects if the mouse is near a grid edge and returns which edges.
+     * @param mouseX Mouse X position in screen coordinates
+     * @param mouseY Mouse Y position in screen coordinates
+     * @param camera The camera for projection
+     * @param canvasWidth Canvas width in pixels
+     * @param canvasHeight Canvas height in pixels
+     * @param threshold Distance threshold in pixels to consider "near" an edge
+     * @returns GridEdgeProximity object or null if not near any edge
+     */
+    getEdgeProximity(
+        mouseX: number,
+        mouseY: number,
+        camera: Camera,
+        canvasWidth: number,
+        canvasHeight: number,
+        threshold: number = 12,
+    ): GridEdgeProximity | null {
+        if (!this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+            return null;
+        }
+
+        const viewProjMatrix = camera.viewProjMatrix;
+
+        // Grid world bounds
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Project the four corners to screen space
+        const topLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const topRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const bottomLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const bottomRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+
+        // Calculate distance to each edge (as line segments)
+        const distToTop = this.distanceToLineSegment(
+            mouseX,
+            mouseY,
+            topLeft[0],
+            topLeft[1],
+            topRight[0],
+            topRight[1],
+        );
+        const distToBottom = this.distanceToLineSegment(
+            mouseX,
+            mouseY,
+            bottomLeft[0],
+            bottomLeft[1],
+            bottomRight[0],
+            bottomRight[1],
+        );
+        const distToLeft = this.distanceToLineSegment(
+            mouseX,
+            mouseY,
+            topLeft[0],
+            topLeft[1],
+            bottomLeft[0],
+            bottomLeft[1],
+        );
+        const distToRight = this.distanceToLineSegment(
+            mouseX,
+            mouseY,
+            topRight[0],
+            topRight[1],
+            bottomRight[0],
+            bottomRight[1],
+        );
+
+        const proximity: GridEdgeProximity = {
+            top: distToTop <= threshold,
+            bottom: distToBottom <= threshold,
+            left: distToLeft <= threshold,
+            right: distToRight <= threshold,
+        };
+
+        // Return null if not near any edge
+        if (!proximity.top && !proximity.bottom && !proximity.left && !proximity.right) {
+            return null;
+        }
+
+        return proximity;
+    }
+
+    /**
+     * Calculates the shortest distance from a point to a line segment.
+     */
+    private distanceToLineSegment(
+        px: number,
+        py: number,
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+    ): number {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lengthSquared = dx * dx + dy * dy;
+
+        if (lengthSquared === 0) {
+            // Line segment is a point
+            return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+        }
+
+        // Project point onto line, clamped to segment
+        let t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
+        t = Math.max(0, Math.min(1, t));
+
+        const closestX = x1 + t * dx;
+        const closestY = y1 + t * dy;
+
+        return Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
+    }
+
+    /**
+     * Converts screen delta movement to world coordinate delta.
+     * Used for grid resizing based on mouse drag.
+     */
+    screenDeltaToWorldDelta(
+        deltaScreenX: number,
+        deltaScreenY: number,
+        camera: Camera,
+    ): { deltaWorldX: number; deltaWorldZ: number } {
+        // In ortho mode, the relationship between screen and world is based on zoom
+        // panScale = 4 / camera.orthoZoom (from MapViewerRenderer.handleMouseInput)
+        const panScale = 4 / camera.orthoZoom;
+
+        // Screen X increases right -> World X increases right
+        // Screen Y increases down -> World Z decreases (south)
+        return {
+            deltaWorldX: -deltaScreenX * panScale,
+            deltaWorldZ: deltaScreenY * panScale,
+        };
+    }
+
     draw(overlayCanvas: HTMLCanvasElement, camera: Camera): void {
         const ctx = overlayCanvas.getContext("2d");
         if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
@@ -244,10 +438,38 @@ export class GridRenderer2D {
         const gridMaxZ = this.settings.worldZ;
 
         // gridMaxZ is north (top of screen), gridMinZ is south (bottom of screen)
-        const topLeft = this.projectWorldToScreen(gridMinX, 0, gridMaxZ, viewProjMatrix, width, height);
-        const topRight = this.projectWorldToScreen(gridMaxX, 0, gridMaxZ, viewProjMatrix, width, height);
-        const bottomLeft = this.projectWorldToScreen(gridMinX, 0, gridMinZ, viewProjMatrix, width, height);
-        const bottomRight = this.projectWorldToScreen(gridMaxX, 0, gridMinZ, viewProjMatrix, width, height);
+        const topLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const topRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const bottomLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const bottomRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
 
         // Draw semi-transparent overlay with grid area cut out
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
