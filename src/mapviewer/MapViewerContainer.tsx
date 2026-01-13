@@ -36,6 +36,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const [cameraYaw, setCameraYaw] = useState(mapViewer.camera.getYaw());
     const [isWorldMapOpen, setWorldMapOpen] = useState<boolean>(false);
     const [isPlacesDialogOpen, setPlacesDialogOpen] = useState<boolean>(false);
+    const [isGridVisible, setIsGridVisible] = useState<boolean>(true);
 
     const [menuProps, setMenuProps] = useState<OsrsMenuProps | undefined>(undefined);
 
@@ -56,6 +57,17 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             if (!hideUi) {
                 setFps(Math.round(renderer.stats.frameTimeFps));
                 setCameraYaw(mapViewer.camera.getYaw());
+
+                // Check if grid is visible in current camera view
+                const canvas = renderer.canvas;
+                if (canvas) {
+                    const gridVisible = renderer.gridRenderer.isGridVisible(
+                        mapViewer.camera,
+                        canvas.width,
+                        canvas.height,
+                    );
+                    setIsGridVisible(gridVisible);
+                }
             }
 
             if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
@@ -105,6 +117,13 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         setPlacesDialogOpen(false);
         renderer.canvas.focus();
     }, [renderer]);
+
+    const snapGridToCamera = useCallback(() => {
+        const canvas = renderer.canvas;
+        if (canvas) {
+            renderer.gridRenderer.snapGridToCamera(mapViewer.camera, canvas.width, canvas.height);
+        }
+    }, [mapViewer, renderer]);
 
     const onPlaceSelected = useCallback(
         (place: PlaceOfInterest) => {
@@ -213,6 +232,12 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                         onRequestClose={closePlacesDialog}
                         onPlaceSelected={onPlaceSelected}
                     />
+                    <button
+                        className={`snap-grid-button ${!isGridVisible ? "visible" : ""}`}
+                        onClick={snapGridToCamera}
+                    >
+                        Snap grid to camera
+                    </button>
                 </span>
             )}
 

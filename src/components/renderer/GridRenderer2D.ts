@@ -575,4 +575,153 @@ export class GridRenderer2D {
             this.settings.worldZ - this.settings.heightInCells / 2,
         ];
     }
+
+    /** Minimum visibility ratio (0-1) for the grid to be considered "sufficiently visible" */
+    private static readonly VISIBILITY_THRESHOLD = 0.3;
+
+    /**
+     * Calculates what fraction of the grid is visible on screen (0 to 1).
+     * Uses the bounding box of the projected grid corners and calculates
+     * the intersection with the viewport.
+     */
+    getGridVisibilityRatio(camera: Camera, canvasWidth: number, canvasHeight: number): number {
+        if (!this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+            return 1; // Consider fully visible when not applicable
+        }
+
+        const viewProjMatrix = camera.viewProjMatrix;
+
+        // Grid world bounds
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Project the four corners of the grid to screen space
+        const corners = [
+            this.projectWorldToScreen(gridMinX, 0, gridMaxZ, viewProjMatrix, canvasWidth, canvasHeight),
+            this.projectWorldToScreen(gridMaxX, 0, gridMaxZ, viewProjMatrix, canvasWidth, canvasHeight),
+            this.projectWorldToScreen(gridMaxX, 0, gridMinZ, viewProjMatrix, canvasWidth, canvasHeight),
+            this.projectWorldToScreen(gridMinX, 0, gridMinZ, viewProjMatrix, canvasWidth, canvasHeight),
+        ];
+
+        // Check if any corner projection is invalid
+        for (const corner of corners) {
+            if (isNaN(corner[0]) || isNaN(corner[1])) {
+                return 0;
+            }
+        }
+
+        // Get the axis-aligned bounding box of the projected grid
+        const minScreenX = Math.min(...corners.map((c) => c[0]));
+        const maxScreenX = Math.max(...corners.map((c) => c[0]));
+        const minScreenY = Math.min(...corners.map((c) => c[1]));
+        const maxScreenY = Math.max(...corners.map((c) => c[1]));
+
+        // Calculate the total area of the projected grid bounding box
+        const totalWidth = maxScreenX - minScreenX;
+        const totalHeight = maxScreenY - minScreenY;
+        const totalArea = totalWidth * totalHeight;
+
+        if (totalArea <= 0) {
+            return 0;
+        }
+
+        // Clip the bounding box to the screen bounds
+        const clippedMinX = Math.max(0, minScreenX);
+        const clippedMaxX = Math.min(canvasWidth, maxScreenX);
+        const clippedMinY = Math.max(0, minScreenY);
+        const clippedMaxY = Math.min(canvasHeight, maxScreenY);
+
+        // Calculate the visible (clipped) area
+        const clippedWidth = Math.max(0, clippedMaxX - clippedMinX);
+        const clippedHeight = Math.max(0, clippedMaxY - clippedMinY);
+        const clippedArea = clippedWidth * clippedHeight;
+
+        return clippedArea / totalArea;
+    }
+
+    /**
+     * Checks if the grid is sufficiently visible in the current camera view.
+     * Returns true if at least VISIBILITY_THRESHOLD (30%) of the grid is on-screen.
+     */
+    isGridVisible(camera: Camera, canvasWidth: number, canvasHeight: number): boolean {
+        const visibilityRatio = this.getGridVisibilityRatio(camera, canvasWidth, canvasHeight);
+        return visibilityRatio >= GridRenderer2D.VISIBILITY_THRESHOLD;
+    }
+
+    /**
+     * Calculates the visible world bounds from the camera's orthographic projection.
+     * Returns the min/max world coordinates visible on screen.
+     */
+    getVisibleWorldBounds(
+        camera: Camera,
+        canvasWidth: number,
+        canvasHeight: number,
+    ): { minX: number; maxX: number; minZ: number; maxZ: number } {
+        // In orthographic mode, the visible area is determined by orthoZoom
+        // The visible world width/height is: canvasWidth/height * 2 / orthoZoom
+        const worldWidth = (canvasWidth * 2) / camera.orthoZoom;
+        const worldHeight = (canvasHeight * 2) / camera.orthoZoom;
+
+        const cameraPosX = camera.getPosX();
+        const cameraPosZ = camera.getPosZ();
+
+        return {
+            minX: cameraPosX - worldWidth / 2,
+            maxX: cameraPosX + worldWidth / 2,
+            minZ: cameraPosZ - worldHeight / 2,
+            maxZ: cameraPosZ + worldHeight / 2,
+        };
+    }
+
+    /**
+     * Snaps the grid to be entirely within the visible camera area.
+     * The grid will be centered on the camera position while respecting
+     * the minimum and maximum grid size constraints.
+     */
+    snapGridToCamera(camera: Camera, canvasWidth: number, canvasHeight: number): void {
+        if (camera.projectionType !== ProjectionType.ORTHO) {
+            return;
+        }
+
+        const bounds = this.getVisibleWorldBounds(camera, canvasWidth, canvasHeight);
+
+        // Calculate the available space
+        const availableWidth = bounds.maxX - bounds.minX;
+        const availableHeight = bounds.maxZ - bounds.minZ;
+
+        // Determine the grid size to fit within visible area
+        // Keep current size if it fits, otherwise shrink to fit
+        let newWidth = this.settings.widthInCells;
+        let newHeight = this.settings.heightInCells;
+
+        // If current grid is too large to fit, shrink it
+        if (newWidth > availableWidth) {
+            newWidth = Math.floor(availableWidth);
+        }
+        if (newHeight > availableHeight) {
+            newHeight = Math.floor(availableHeight);
+        }
+
+        // Ensure we respect min/max constraints
+        newWidth = Math.max(MINIMUM_GRID_SIZE, Math.min(MAXIMUM_GRID_SIZE, newWidth));
+        newHeight = Math.max(MINIMUM_GRID_SIZE, Math.min(MAXIMUM_GRID_SIZE, newHeight));
+
+        // Center the grid on the camera position
+        const cameraPosX = camera.getPosX();
+        const cameraPosZ = camera.getPosZ();
+
+        // worldX/worldZ is the top-left corner
+        // Grid extends right (+X) and down (-Z)
+        const newWorldX = Math.floor(cameraPosX - newWidth / 2);
+        const newWorldZ = Math.floor(cameraPosZ + newHeight / 2);
+
+        this.setSettings({
+            worldX: newWorldX,
+            worldZ: newWorldZ,
+            widthInCells: newWidth,
+            heightInCells: newHeight,
+        });
+    }
 }
