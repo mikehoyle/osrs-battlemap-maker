@@ -4,20 +4,15 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { RendererCanvas } from "../components/renderer/RendererCanvas";
 import { OsrsLoadingBar } from "../components/rs/loading/OsrsLoadingBar";
 import { OsrsMenu, OsrsMenuProps } from "../components/rs/menu/OsrsMenu";
-import { MinimapContainer } from "../components/rs/minimap/MinimapContainer";
 import { PlacesOfInterestDialog } from "../components/rs/places/PlacesOfInterestDialog";
 import { WorldMapModal } from "../components/rs/worldmap/WorldMapModal";
 import { Sidebar } from "../components/sidebar/Sidebar";
-import { RS_TO_DEGREES } from "../rs/MathConstants";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { formatBytes } from "../util/BytesUtil";
 import { MapViewer } from "./MapViewer";
 import "./MapViewerContainer.css";
 import { MapViewerRenderer } from "./MapViewerRenderer";
 import { PlaceOfInterest } from "./PlacesOfInterest";
-
-// Set to true to show the FPS counter (for debugging)
-const SHOW_FPS_COUNTER = false;
 
 interface MapViewerContainerProps {
     mapViewer: MapViewer;
@@ -32,8 +27,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>();
 
     const [hideUi, setHideUi] = useState(false);
-    const [fps, setFps] = useState(0);
-    const [cameraYaw, setCameraYaw] = useState(mapViewer.camera.getYaw());
     const [isWorldMapOpen, setWorldMapOpen] = useState<boolean>(false);
     const [isPlacesDialogOpen, setPlacesDialogOpen] = useState<boolean>(false);
     const [isGridVisible, setIsGridVisible] = useState<boolean>(true);
@@ -55,9 +48,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             }
 
             if (!hideUi) {
-                setFps(Math.round(renderer.stats.frameTimeFps));
-                setCameraYaw(mapViewer.camera.getYaw());
-
                 // Check if grid is visible in current camera view
                 const canvas = renderer.canvas;
                 if (canvas) {
@@ -99,10 +89,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const goBack = useCallback(() => {
         navigate("/");
     }, [navigate]);
-
-    const resetCameraYaw = useCallback(() => {
-        mapViewer.camera.setYaw(0);
-    }, [mapViewer]);
 
     const openWorldMap = useCallback(() => {
         setWorldMapOpen(true);
@@ -174,13 +160,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         [mapViewer],
     );
 
-    const loadMinimapImageUrl = useCallback(
-        (mapX: number, mapY: number) => {
-            return mapViewer.getMapImageUrl(mapX, mapY, true);
-        },
-        [mapViewer],
-    );
-
     let loadingBarOverlay: JSX.Element | undefined = undefined;
     if (downloadProgress) {
         const formattedCacheSize = formatBytes(downloadProgress.total);
@@ -215,23 +194,6 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
             <div className="map-viewer-content">
                 {!hideUi && (
                     <>
-                        <div className="hud left-top">
-                            <MinimapContainer
-                                yawDegrees={(2047 - cameraYaw) * RS_TO_DEGREES}
-                                onCompassClick={resetCameraYaw}
-                                getPosition={getMapPosition}
-                                loadMapImageUrl={loadMinimapImageUrl}
-                            />
-
-                            {SHOW_FPS_COUNTER && (
-                                <div className="fps-counter content-text">{fps}</div>
-                            )}
-                            {SHOW_FPS_COUNTER && (
-                                <div className="fps-counter content-text">
-                                    {mapViewer.debugText}
-                                </div>
-                            )}
-                        </div>
                         <WorldMapModal
                             isOpen={isWorldMapOpen}
                             onRequestClose={closeWorldMap}

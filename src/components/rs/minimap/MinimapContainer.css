@@ -1,7 +1,0 @@
-.minimap-container {
-    position: relative;
-    width: 210px;
-    height: 210px;
-    overflow: hidden;
-    z-index: 10;
-}

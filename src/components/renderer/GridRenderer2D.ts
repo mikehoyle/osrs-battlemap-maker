@@ -418,6 +418,9 @@ export class GridRenderer2D {
 
         // Draw grey overlay for non-grid area
         this.drawGreyOverlay(ctx, viewProjMatrix, width, height);
+
+        // Draw frame around grid to indicate it's interactable (browser view only)
+        this.drawGridFrame(ctx, viewProjMatrix, width, height, scaleFactor);
     }
 
     /**
@@ -484,6 +487,140 @@ export class GridRenderer2D {
         ctx.closePath();
 
         ctx.fill("evenodd");
+    }
+
+    /**
+     * Draws a visible frame around the grid to indicate it's interactable.
+     * Only shown in browser view, not in exports.
+     */
+    private drawGridFrame(
+        ctx: CanvasRenderingContext2D,
+        viewProjMatrix: mat4,
+        width: number,
+        height: number,
+        scaleFactor: number,
+    ): void {
+        // Grid world bounds
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Project corners to screen space
+        const topLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const topRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const bottomLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+        const bottomRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            width,
+            height,
+        );
+
+        // Check for valid projections
+        if (
+            isNaN(topLeft[0]) ||
+            isNaN(topRight[0]) ||
+            isNaN(bottomLeft[0]) ||
+            isNaN(bottomRight[0])
+        ) {
+            return;
+        }
+
+        // Frame styling - white border with slight transparency for visibility
+        const frameColor = "rgba(255, 255, 255, 0.85)";
+        const frameWidth = Math.max(2, 3 * scaleFactor);
+        const handleSize = Math.max(8, 12 * scaleFactor);
+
+        // Draw outer frame border
+        ctx.strokeStyle = frameColor;
+        ctx.lineWidth = frameWidth;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(topLeft[0], topLeft[1]);
+        ctx.lineTo(topRight[0], topRight[1]);
+        ctx.lineTo(bottomRight[0], bottomRight[1]);
+        ctx.lineTo(bottomLeft[0], bottomLeft[1]);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Draw a subtle inner shadow line for depth
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.lineWidth = Math.max(1, 1.5 * scaleFactor);
+        ctx.beginPath();
+        ctx.moveTo(topLeft[0], topLeft[1]);
+        ctx.lineTo(topRight[0], topRight[1]);
+        ctx.lineTo(bottomRight[0], bottomRight[1]);
+        ctx.lineTo(bottomLeft[0], bottomLeft[1]);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Draw corner handles to indicate resizability
+        ctx.fillStyle = frameColor;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.lineWidth = Math.max(1, 1.5 * scaleFactor);
+
+        const corners: vec2[] = [topLeft, topRight, bottomLeft, bottomRight];
+        for (const corner of corners) {
+            ctx.beginPath();
+            ctx.rect(
+                corner[0] - handleSize / 2,
+                corner[1] - handleSize / 2,
+                handleSize,
+                handleSize,
+            );
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Draw edge midpoint handles for single-axis resizing
+        const midTop: vec2 = [(topLeft[0] + topRight[0]) / 2, (topLeft[1] + topRight[1]) / 2];
+        const midBottom: vec2 = [
+            (bottomLeft[0] + bottomRight[0]) / 2,
+            (bottomLeft[1] + bottomRight[1]) / 2,
+        ];
+        const midLeft: vec2 = [(topLeft[0] + bottomLeft[0]) / 2, (topLeft[1] + bottomLeft[1]) / 2];
+        const midRight: vec2 = [
+            (topRight[0] + bottomRight[0]) / 2,
+            (topRight[1] + bottomRight[1]) / 2,
+        ];
+
+        const edgeHandleSize = handleSize * 0.7;
+        const midpoints: vec2[] = [midTop, midBottom, midLeft, midRight];
+        for (const midpoint of midpoints) {
+            ctx.beginPath();
+            ctx.rect(
+                midpoint[0] - edgeHandleSize / 2,
+                midpoint[1] - edgeHandleSize / 2,
+                edgeHandleSize,
+                edgeHandleSize,
+            );
+            ctx.fill();
+            ctx.stroke();
+        }
     }
 
     private drawLine(ctx: CanvasRenderingContext2D, p1: vec2, p2: vec2, scaleFactor: number) {
