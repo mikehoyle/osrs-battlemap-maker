@@ -30,11 +30,19 @@ import { SdMapData } from "./loader/SdMapData";
 import { SdMapDataLoader } from "./loader/SdMapDataLoader";
 import { SdMapLoaderInput } from "./loader/SdMapLoaderInput";
 import {
+    FRAME_ELDRITCH_PROGRAM,
     FRAME_FXAA_PROGRAM,
+    FRAME_PARCHMENT_PROGRAM,
     FRAME_PROGRAM,
     createMainProgram,
     createNpcProgram,
 } from "./shaders/Shaders";
+
+export enum PostProcessingEffect {
+    NONE = "none",
+    PARCHMENT = "parchment",
+    ELDRITCH = "eldritch",
+}
 
 const MAX_TEXTURES = 2048;
 const TEXTURE_SIZE = 128;
@@ -96,6 +104,8 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     npcProgram?: Program;
     frameProgram?: Program;
     frameFxaaProgram?: Program;
+    frameParchmentProgram?: Program;
+    frameEldritchProgram?: Program;
 
     // Uniforms
     sceneUniformBuffer?: UniformBuffer;
@@ -130,6 +140,8 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
     frameDrawCall?: DrawCall;
     frameFxaaDrawCall?: DrawCall;
+    frameParchmentDrawCall?: DrawCall;
+    frameEldritchDrawCall?: DrawCall;
 
     // Settings
     maxLevel: number = 0;
@@ -146,6 +158,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
     msaaEnabled: boolean = false;
     fxaaEnabled: boolean = false;
+    activeEffect: PostProcessingEffect = PostProcessingEffect.NONE;
 
     loadObjs: boolean = true;
     loadNpcs: boolean = false;
@@ -249,18 +262,31 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             createNpcProgram(hasMultiDraw, true),
             FRAME_PROGRAM,
             FRAME_FXAA_PROGRAM,
+            FRAME_PARCHMENT_PROGRAM,
+            FRAME_ELDRITCH_PROGRAM,
         );
 
-        const [mainProgram, mainAlphaProgram, npcProgram, frameProgram, frameFxaaProgram] =
-            programs;
+        const [
+            mainProgram,
+            mainAlphaProgram,
+            npcProgram,
+            frameProgram,
+            frameFxaaProgram,
+            frameParchmentProgram,
+            frameEldritchProgram,
+        ] = programs;
         this.mainProgram = mainProgram;
         this.mainAlphaProgram = mainAlphaProgram;
         this.npcProgram = npcProgram;
         this.frameProgram = frameProgram;
         this.frameFxaaProgram = frameFxaaProgram;
+        this.frameParchmentProgram = frameParchmentProgram;
+        this.frameEldritchProgram = frameEldritchProgram;
 
         this.frameDrawCall = this.app.createDrawCall(frameProgram, this.quadArray);
         this.frameFxaaDrawCall = this.app.createDrawCall(frameFxaaProgram, this.quadArray);
+        this.frameParchmentDrawCall = this.app.createDrawCall(frameParchmentProgram, this.quadArray);
+        this.frameEldritchDrawCall = this.app.createDrawCall(frameEldritchProgram, this.quadArray);
 
         return programs;
     }
@@ -644,6 +670,10 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.fxaaEnabled = enabled;
     }
 
+    setActiveEffect(effect: PostProcessingEffect): void {
+        this.activeEffect = effect;
+    }
+
     setLoadObjs(enabled: boolean): void {
         const updated = this.loadObjs !== enabled;
         this.loadObjs = enabled;
@@ -865,7 +895,27 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.app.clearColor(0.0, 0.0, 0.0, 1.0);
         this.app.defaultDrawFramebuffer().clear();
 
-        if (this.frameFxaaDrawCall && this.fxaaEnabled) {
+        if (
+            this.frameParchmentDrawCall &&
+            this.activeEffect === PostProcessingEffect.PARCHMENT
+        ) {
+            this.frameParchmentDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameParchmentDrawCall.texture(
+                "u_frame",
+                this.textureFramebuffer.colorAttachments[0],
+            );
+            this.frameParchmentDrawCall.draw();
+        } else if (
+            this.frameEldritchDrawCall &&
+            this.activeEffect === PostProcessingEffect.ELDRITCH
+        ) {
+            this.frameEldritchDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameEldritchDrawCall.texture(
+                "u_frame",
+                this.textureFramebuffer.colorAttachments[0],
+            );
+            this.frameEldritchDrawCall.draw();
+        } else if (this.frameFxaaDrawCall && this.fxaaEnabled) {
             this.frameFxaaDrawCall.uniform("u_resolution", this.resolutionUni);
             this.frameFxaaDrawCall.texture("u_frame", this.textureFramebuffer.colorAttachments[0]);
             this.frameFxaaDrawCall.draw();

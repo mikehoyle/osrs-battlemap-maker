@@ -1,6 +1,10 @@
 import { ProgramSource, prependDefines } from "./ShaderUtil";
+import frameEldritchFragShader from "./frame-eldritch.frag.glsl";
+import frameEldritchVertShader from "./frame-eldritch.vert.glsl";
 import frameFxaaFragShader from "./frame-fxaa.frag.glsl";
 import frameFxaaVertShader from "./frame-fxaa.vert.glsl";
+import frameParchmentFragShader from "./frame-parchment.frag.glsl";
+import frameParchmentVertShader from "./frame-parchment.vert.glsl";
 import frameFragShader from "./frame.frag.glsl";
 import frameVertShader from "./frame.vert.glsl";
 import mainFragShader from "./main.frag.glsl";
@@ -33,3 +37,5 @@ export function createNpcProgram(hasMultiDraw: boolean, discardAlpha: boolean): 
 
 export const FRAME_PROGRAM = [frameVertShader, frameFragShader];
 export const FRAME_FXAA_PROGRAM = [frameFxaaVertShader, frameFxaaFragShader];
+export const FRAME_PARCHMENT_PROGRAM = [frameParchmentVertShader, frameParchmentFragShader];
+export const FRAME_ELDRITCH_PROGRAM = [frameEldritchVertShader, frameEldritchFragShader];

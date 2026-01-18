@@ -3,6 +3,7 @@ import { memo, useEffect } from "react";
 import { MapViewer } from "../../mapviewer/MapViewer";
 import { MapViewerRenderer } from "../../mapviewer/MapViewerRenderer";
 import "./Sidebar.css";
+import { EffectsSection } from "./sections/EffectsSection";
 import { ExportSection } from "./sections/ExportSection";
 import { GridSection } from "./sections/GridSection";
 import { NavigationSection } from "./sections/NavigationSection";
@@ -52,6 +53,7 @@ export const Sidebar = memo(function Sidebar({
                 onPlacesOfInterestClick={onPlacesOfInterestClick}
             />
             <ViewSection mapViewer={mapViewer} renderer={renderer} />
+            <EffectsSection mapViewer={mapViewer} renderer={renderer} />
             <GridSection mapViewer={mapViewer} renderer={renderer} />
             <ExportSection mapViewer={mapViewer} renderer={renderer} />
         </div>
