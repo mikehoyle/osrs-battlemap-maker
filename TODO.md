@@ -1,18 +1,13 @@
 # Main stuff
 
--   Token maker error Failed loading type 15439 Error: NpcType: Opcode 124 not implemented. ID: 15439. cache: [object Object]
--   Better organized controls?
 -   Places of Interest
     - categorization
 -   FAQ Page
--   Cron job for updating cache in R2
 -   After-effects like fog or color tweaking
--   Fix the menu to be more concise
 
 # Possible small additions
 
 -   More in POI list
--   Export resolution options
 
 # Bigger scope stuff
 
@@ -21,6 +16,7 @@
 
 # Done!
 
+-   Export Resolution options
 -   Remove controller/joystick controls (fixed mobile touch controls)
 -   Page title
 -   Add personal-use disclaimer mumbo jumbo to legal

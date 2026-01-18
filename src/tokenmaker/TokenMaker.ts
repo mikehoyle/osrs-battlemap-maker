@@ -207,22 +207,32 @@ export class TokenMaker {
     private buildNpcList(): void {
         const count = this.npcTypeLoader.getCount();
         const npcs: NpcOption[] = [];
+        let skippedCount = 0;
 
         for (let id = 0; id < count; id++) {
-            const npc = this.npcTypeLoader.load(id);
-            if (npc && npc.name && npc.name !== "null" && npc.modelIds && npc.modelIds.length > 0) {
-                // Skip unknown/placeholder names
-                if (npc.name === "? ? ? ?" || npc.name.includes("? ? ? ?")) {
-                    continue;
-                }
+            try {
+                const npc = this.npcTypeLoader.load(id);
+                if (npc && npc.name && npc.name !== "null" && npc.modelIds && npc.modelIds.length > 0) {
+                    // Skip unknown/placeholder names
+                    if (npc.name === "? ? ? ?" || npc.name.includes("? ? ? ?")) {
+                        continue;
+                    }
 
-                const cleanName = this.stripColorTags(npc.name);
-                npcs.push({
-                    id,
-                    name: cleanName,
-                    combatLevel: npc.combatLevel,
-                });
+                    const cleanName = this.stripColorTags(npc.name);
+                    npcs.push({
+                        id,
+                        name: cleanName,
+                        combatLevel: npc.combatLevel,
+                    });
+                }
+            } catch (e) {
+                // Skip NPCs that fail to decode (e.g., unknown opcodes in newer cache versions)
+                skippedCount++;
             }
+        }
+
+        if (skippedCount > 0) {
+            console.warn(`Skipped ${skippedCount} NPCs due to decode errors (likely unknown opcodes)`);
         }
 
         this.npcList = npcs.sort((a, b) => a.name.localeCompare(b.name));

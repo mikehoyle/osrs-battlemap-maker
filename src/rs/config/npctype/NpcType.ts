@@ -184,6 +184,8 @@ export class NpcType extends Type {
             }
         } else if (opcode === 44 || opcode === 45) {
             buffer.readUnsignedShort();
+        } else if (opcode === 50) {
+            buffer.readUnsignedByte();
         } else if (opcode === 60) {
             const count = buffer.readUnsignedByte();
             this.chatheadModelIds = new Array<number>(count);
@@ -339,6 +341,8 @@ export class NpcType extends Type {
             } else {
                 const iconHeight = buffer.readUnsignedShort();
             }
+        } else if (opcode === 124) {
+            buffer.readUnsignedShort();
         } else if (opcode === 125) {
             this.spawnDirection = buffer.readByte();
         } else if (opcode === 127) {
@@ -421,6 +425,14 @@ export class NpcType extends Type {
             const v = buffer.readUnsignedByte();
         } else if (opcode >= 170 && opcode < 176) {
             buffer.readUnsignedShort();
+        } else if (opcode === 200) {
+            buffer.readUnsignedByte();
+        } else if (opcode === 203) {
+            buffer.readUnsignedByte();
+        } else if (opcode === 204) {
+            buffer.readUnsignedByte();
+        } else if (opcode === 214) {
+            buffer.readUnsignedByte();
         } else if (opcode === 249) {
             this.params = Type.readParamsMap(buffer, this.params);
         } else {

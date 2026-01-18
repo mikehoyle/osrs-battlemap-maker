@@ -91,22 +91,7 @@ export function ExportPanel({
 
     return (
         <div className="control-panel rs-border rs-background export-panel">
-            <h3 className="control-panel-title">Export Settings</h3>
-
-            <div className="control-row">
-                <label className="control-label">Size</label>
-                <div className="button-group">
-                    {RESOLUTIONS.map((res) => (
-                        <button
-                            key={res}
-                            className={`control-button rs-border rs-background ${resolution === res ? "active" : ""}`}
-                            onClick={() => onResolutionChange(res)}
-                        >
-                            {res}px
-                        </button>
-                    ))}
-                </div>
-            </div>
+            <h3 className="control-panel-title">Render Settings</h3>
 
             <div className="control-row">
                 <label className="control-label">HD</label>
@@ -135,8 +120,6 @@ export function ExportPanel({
                     </div>
                 </div>
             )}
-
-            <h3 className="control-panel-title section-title">Render Settings</h3>
 
             <div className="control-row">
                 <label className="control-label">Brightness</label>
@@ -210,6 +193,23 @@ export function ExportPanel({
                     <span className="width-value">{Math.round(shadowOpacity * 100)}%</span>
                 </div>
             )}
+
+            <h3 className="control-panel-title section-title">Export Settings</h3>
+
+            <div className="control-row">
+                <label className="control-label">Size</label>
+                <div className="button-group">
+                    {RESOLUTIONS.map((res) => (
+                        <button
+                            key={res}
+                            className={`control-button rs-border rs-background ${resolution === res ? "active" : ""}`}
+                            onClick={() => onResolutionChange(res)}
+                        >
+                            {res}px
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             <div className="control-row export-button-row">
                 <button
