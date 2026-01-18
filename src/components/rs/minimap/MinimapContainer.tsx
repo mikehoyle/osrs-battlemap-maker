@@ -15,10 +15,7 @@ interface Position {
 interface MinimapContainerProps {
     yawDegrees: number;
 
-    onBackClick: () => void;
     onCompassClick: () => void;
-    onWorldMapClick: () => void;
-    onPlacesOfInterestClick: () => void;
 
     getPosition: () => Position;
     loadMapImageUrl: (mapX: number, mapY: number) => string | undefined;
@@ -26,10 +23,7 @@ interface MinimapContainerProps {
 
 export const MinimapContainer = memo(function MinimapContainer({
     yawDegrees,
-    onBackClick,
     onCompassClick,
-    onWorldMapClick,
-    onPlacesOfInterestClick,
 
     getPosition,
     loadMapImageUrl,
@@ -82,21 +76,6 @@ export const MinimapContainer = memo(function MinimapContainer({
     }, [animate]);
 
     return (
-        <div className="minimap-container">
-            <div className="minimap-button-container">
-                <div className="minimap-back-button" onClick={onBackClick}>
-                    <div className="back-icon" />
-                    <span className="back-text">Back</span>
-                </div>
-                <div className="worldmap-button" onClick={onWorldMapClick}>
-                    <div className="worldmap-icon" />
-                    <span className="worldmap-text">World Map</span>
-                </div>
-                <div className="places-button" onClick={onPlacesOfInterestClick}>
-                    <div className="places-icon" />
-                    <span className="places-text">Places of Interest</span>
-                </div>
-            </div>
-        </div>
+        <div className="minimap-container">{/* Navigation buttons removed - now in Sidebar */}</div>
     );
 });

@@ -576,9 +576,6 @@ export class GridRenderer2D {
         ];
     }
 
-    /** Minimum visibility ratio (0-1) for the grid to be considered "sufficiently visible" */
-    private static readonly VISIBILITY_THRESHOLD = 0.3;
-
     /**
      * Calculates what fraction of the grid is visible on screen (0 to 1).
      * Uses the bounding box of the projected grid corners and calculates
@@ -642,12 +639,27 @@ export class GridRenderer2D {
     }
 
     /**
-     * Checks if the grid is sufficiently visible in the current camera view.
-     * Returns true if at least VISIBILITY_THRESHOLD (30%) of the grid is on-screen.
+     * Checks if any part of the grid is visible on screen.
+     * Returns true if the grid overlaps with the visible area at all.
      */
     isGridVisible(camera: Camera, canvasWidth: number, canvasHeight: number): boolean {
-        const visibilityRatio = this.getGridVisibilityRatio(camera, canvasWidth, canvasHeight);
-        return visibilityRatio >= GridRenderer2D.VISIBILITY_THRESHOLD;
+        if (!this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+            return true; // Consider visible when not applicable
+        }
+
+        const visibleBounds = this.getVisibleWorldBounds(camera, canvasWidth, canvasHeight);
+
+        // Grid world bounds
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Check if the two rectangles overlap (AABB intersection test)
+        const overlapsX = gridMinX < visibleBounds.maxX && gridMaxX > visibleBounds.minX;
+        const overlapsZ = gridMinZ < visibleBounds.maxZ && gridMaxZ > visibleBounds.minZ;
+
+        return overlapsX && overlapsZ;
     }
 
     /**

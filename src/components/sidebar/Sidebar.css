@@ -1,0 +1,33 @@
+.sidebar {
+    width: 280px;
+    min-width: 280px;
+    height: 100%;
+    background: rgba(30, 30, 30, 0.98);
+    border-right: 1px solid #3a3a3a;
+    overflow-y: auto;
+    z-index: 100;
+    font-family: "OSRS Small", sans-serif;
+    color: #ccc;
+    box-sizing: border-box;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(30, 30, 30, 0.5);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4a;
+}

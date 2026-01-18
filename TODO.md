@@ -7,6 +7,7 @@
 -   FAQ Page
 -   Cron job for updating cache in R2
 -   After-effects like fog or color tweaking
+-   Fix the menu to be more concise
 
 # Possible small additions
 

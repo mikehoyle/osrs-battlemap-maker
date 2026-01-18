@@ -7,12 +7,12 @@ import { OsrsMenu, OsrsMenuProps } from "../components/rs/menu/OsrsMenu";
 import { MinimapContainer } from "../components/rs/minimap/MinimapContainer";
 import { PlacesOfInterestDialog } from "../components/rs/places/PlacesOfInterestDialog";
 import { WorldMapModal } from "../components/rs/worldmap/WorldMapModal";
+import { Sidebar } from "../components/sidebar/Sidebar";
 import { RS_TO_DEGREES } from "../rs/MathConstants";
 import { DownloadProgress } from "../rs/cache/CacheFiles";
 import { formatBytes } from "../util/BytesUtil";
 import { MapViewer } from "./MapViewer";
 import "./MapViewerContainer.css";
-import { MapViewerControls } from "./MapViewerControls";
 import { MapViewerRenderer } from "./MapViewerRenderer";
 import { PlaceOfInterest } from "./PlacesOfInterest";
 
@@ -70,7 +70,11 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                 }
             }
 
-            if (mapViewer.menuEntries.length > 0 && mapViewer.menuX !== -1 && mapViewer.menuY !== -1) {
+            if (
+                mapViewer.menuEntries.length > 0 &&
+                mapViewer.menuX !== -1 &&
+                mapViewer.menuY !== -1
+            ) {
                 setMenuProps({
                     x: mapViewer.menuX,
                     y: mapViewer.menuY,
@@ -123,6 +127,11 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
         if (canvas) {
             renderer.gridRenderer.snapGridToCamera(mapViewer.camera, canvas.width, canvas.height);
         }
+    }, [mapViewer, renderer]);
+
+    const returnToGrid = useCallback(() => {
+        const gridCenter = renderer.gridRenderer.gridCenter;
+        mapViewer.camera.teleport(gridCenter[0], undefined, gridCenter[1]);
     }, [mapViewer, renderer]);
 
     const onPlaceSelected = useCallback(
@@ -187,61 +196,73 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     }
 
     return (
-        <div className="max-height">
+        <div className="map-viewer-root">
             {loadingBarOverlay}
 
             {menuProps && <OsrsMenu {...menuProps} />}
 
-            <MapViewerControls
-                renderer={renderer}
-                hideUi={hideUi}
-                setRenderer={setRenderer}
-                setHideUi={setHideUi}
-                setDownloadProgress={setDownloadProgress}
-            />
-
             {!hideUi && (
-                <span>
-                    <div className="hud left-top">
-                        <MinimapContainer
-                            yawDegrees={(2047 - cameraYaw) * RS_TO_DEGREES}
-                            onBackClick={goBack}
-                            onCompassClick={resetCameraYaw}
-                            onWorldMapClick={openWorldMap}
-                            onPlacesOfInterestClick={openPlacesDialog}
-                            getPosition={getMapPosition}
-                            loadMapImageUrl={loadMinimapImageUrl}
-                        />
-
-                        {SHOW_FPS_COUNTER && (
-                            <div className="fps-counter content-text">{fps}</div>
-                        )}
-                        {SHOW_FPS_COUNTER && (
-                            <div className="fps-counter content-text">{mapViewer.debugText}</div>
-                        )}
-                    </div>
-                    <WorldMapModal
-                        isOpen={isWorldMapOpen}
-                        onRequestClose={closeWorldMap}
-                        onDoubleClick={onMapClicked}
-                        getPosition={getMapPosition}
-                        loadMapImageUrl={loadMapImageUrl}
-                    />
-                    <PlacesOfInterestDialog
-                        isOpen={isPlacesDialogOpen}
-                        onRequestClose={closePlacesDialog}
-                        onPlaceSelected={onPlaceSelected}
-                    />
-                    <button
-                        className={`snap-grid-button ${!isGridVisible ? "visible" : ""}`}
-                        onClick={snapGridToCamera}
-                    >
-                        Snap grid to camera
-                    </button>
-                </span>
+                <Sidebar
+                    mapViewer={mapViewer}
+                    renderer={renderer}
+                    setHideUi={setHideUi}
+                    onBackClick={goBack}
+                    onWorldMapClick={openWorldMap}
+                    onPlacesOfInterestClick={openPlacesDialog}
+                />
             )}
 
-            <RendererCanvas renderer={renderer} />
+            <div className="map-viewer-content">
+                {!hideUi && (
+                    <>
+                        <div className="hud left-top">
+                            <MinimapContainer
+                                yawDegrees={(2047 - cameraYaw) * RS_TO_DEGREES}
+                                onCompassClick={resetCameraYaw}
+                                getPosition={getMapPosition}
+                                loadMapImageUrl={loadMinimapImageUrl}
+                            />
+
+                            {SHOW_FPS_COUNTER && (
+                                <div className="fps-counter content-text">{fps}</div>
+                            )}
+                            {SHOW_FPS_COUNTER && (
+                                <div className="fps-counter content-text">
+                                    {mapViewer.debugText}
+                                </div>
+                            )}
+                        </div>
+                        <WorldMapModal
+                            isOpen={isWorldMapOpen}
+                            onRequestClose={closeWorldMap}
+                            onDoubleClick={onMapClicked}
+                            getPosition={getMapPosition}
+                            loadMapImageUrl={loadMapImageUrl}
+                        />
+                        <PlacesOfInterestDialog
+                            isOpen={isPlacesDialogOpen}
+                            onRequestClose={closePlacesDialog}
+                            onPlaceSelected={onPlaceSelected}
+                        />
+                        <div className={`grid-buttons ${!isGridVisible ? "visible" : ""}`}>
+                            <button
+                                className="grid-button rs-border rs-background"
+                                onClick={returnToGrid}
+                            >
+                                Return to grid
+                            </button>
+                            <button
+                                className="grid-button rs-border rs-background"
+                                onClick={snapGridToCamera}
+                            >
+                                Snap grid to camera
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                <RendererCanvas renderer={renderer} />
+            </div>
         </div>
     );
 }

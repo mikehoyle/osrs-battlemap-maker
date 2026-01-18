@@ -1,12 +1,10 @@
-import { Schema } from "leva/dist/declarations/src/types";
-
 import {
-    getCursorForEdge,
     GridEdgeProximity,
     GridRenderer2D,
     GridSettings,
     MAXIMUM_GRID_SIZE,
     MINIMUM_GRID_SIZE,
+    getCursorForEdge,
 } from "../components/renderer/GridRenderer2D";
 import { Renderer } from "../components/renderer/Renderer";
 import { SceneBuilder } from "../rs/scene/SceneBuilder";
@@ -70,7 +68,7 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         );
     }
 
-    getControls(): Schema {
+    getControls(): Record<string, never> {
         return {};
     }
 

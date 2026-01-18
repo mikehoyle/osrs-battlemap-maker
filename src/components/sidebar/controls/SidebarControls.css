@@ -1,0 +1,243 @@
+/* Shared control styling for sidebar components */
+
+/* Button styles - matching token maker with RS styled frame */
+.sidebar-button {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    color: #ff981f;
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.1rem;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000;
+    transition: transform 0.1s ease;
+    min-height: 36px;
+}
+
+.sidebar-button:hover:not(:disabled) {
+    transform: scale(1.02);
+    color: #ffb347;
+}
+
+.sidebar-button:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.sidebar-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sidebar-button-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Slider styles */
+.sidebar-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-slider-label {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1.1rem;
+    color: #ccc;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.sidebar-slider-value {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1rem;
+    color: #ff981f;
+    text-shadow: 1px 1px 0 #000;
+    min-width: 40px;
+    text-align: right;
+}
+
+.sidebar-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #3a3a3a;
+    border-radius: 3px;
+    outline: none;
+}
+
+.sidebar-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #ff981f;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.sidebar-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #ff981f;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.sidebar-slider::-webkit-slider-thumb:hover {
+    background: #ffb347;
+}
+
+.sidebar-slider::-moz-range-thumb:hover {
+    background: #ffb347;
+}
+
+/* Toggle styles */
+.sidebar-toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.sidebar-toggle-label {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1.1rem;
+    color: #ccc;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.sidebar-toggle {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #3a3a3a;
+    border-radius: 12px;
+    border: 1px solid #4a4a4a;
+    transition: background 0.2s ease;
+}
+
+.sidebar-toggle.checked {
+    background: #5a4d3a;
+}
+
+.sidebar-toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #888;
+    border-radius: 50%;
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.sidebar-toggle.checked .sidebar-toggle-thumb {
+    transform: translateX(20px);
+    background: #ff981f;
+}
+
+/* Select styles */
+.sidebar-select-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-select-label {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1.1rem;
+    color: #ccc;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.sidebar-select {
+    width: 100%;
+    padding: 0.5rem;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    border-radius: 2px;
+    color: #fff;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1.1rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.sidebar-select:hover {
+    border-color: #4a4a4a;
+}
+
+.sidebar-select:focus {
+    border-color: #ff981f;
+}
+
+.sidebar-select option {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+/* Color picker styles */
+.sidebar-color-picker-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-color-picker-label {
+    font-family: "OSRS Small", sans-serif;
+    font-size: 1.1rem;
+    color: #ccc;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.sidebar-color-picker-wrapper {
+    position: relative;
+    width: 48px;
+    height: 28px;
+}
+
+.sidebar-color-picker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.sidebar-color-picker-preview {
+    width: 100%;
+    height: 100%;
+    border: 2px solid #3a3a3a;
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+/* Button row for multiple buttons */
+.sidebar-button-row {
+    display: flex;
+    gap: 8px;
+}
+
+.sidebar-button-row .sidebar-button {
+    flex: 1;
+}
