@@ -6,6 +6,8 @@ in vec2 v_texCoord;
 
 uniform highp sampler2D u_frame;
 uniform vec2 u_resolution;
+// Grid bounds in UV space: (minU, minV, maxU, maxV)
+uniform vec4 u_gridBounds;
 
 out vec4 fragColor;
 
@@ -23,6 +25,41 @@ vec3 applyContrast(vec3 color, float contrast) {
     vec3 shifted = color - 0.5;
     vec3 curved = sign(shifted) * pow(abs(shifted) * 2.0, vec3(contrast)) * 0.5;
     return clamp(curved + 0.5, 0.0, 1.0);
+}
+
+// Calculate vignette based on distance from grid bounds
+float calculateGridVignette(vec2 uv, vec4 gridBounds) {
+    // Grid center and half-size
+    vec2 gridCenter = vec2(
+        (gridBounds.x + gridBounds.z) * 0.5,
+        (gridBounds.y + gridBounds.w) * 0.5
+    );
+    vec2 gridHalfSize = vec2(
+        (gridBounds.z - gridBounds.x) * 0.5,
+        (gridBounds.w - gridBounds.y) * 0.5
+    );
+
+    // Distance from UV to grid center, normalized by grid size
+    vec2 offset = abs(uv - gridCenter);
+    vec2 normalizedOffset = offset / max(gridHalfSize, vec2(0.001));
+
+    // Use superellipse (squircle) distance for smooth rectangular vignette
+    // Power of 4 gives a rounded rectangle shape without diagonal artifacts
+    float power = 4.0;
+    float distFromCenter = pow(
+        pow(normalizedOffset.x, power) + pow(normalizedOffset.y, power),
+        1.0 / power
+    );
+
+    // Tight vignette that fades within the grid
+    // Starts fading at 0.3 from center, fades to semi-dark at edges
+    float vignette = 1.0 - smoothstep(0.3, 1.0, distFromCenter) * 0.65;
+
+    // Extra darkening outside the grid (but still not full black)
+    float outsideGrid = max(distFromCenter - 1.0, 0.0);
+    float outerDarkening = smoothstep(0.0, 0.4, outsideGrid) * 0.25;
+
+    return max(vignette - outerDarkening, 0.15);
 }
 
 void main() {
@@ -47,18 +84,23 @@ void main() {
     color.g *= 1.1;
     color.b *= 1.15;
 
-    // Heavy vignette
-    vec2 vignetteCoord = v_texCoord * 2.0 - 1.0;
-    float vignetteDist = length(vignetteCoord);
-    // Aggressive vignette falloff
-    float vignette = 1.0 - smoothstep(0.3, 1.2, vignetteDist);
-    vignette = pow(vignette, 1.5);
+    // Grid-based vignette
+    float vignette = calculateGridVignette(v_texCoord, u_gridBounds);
+    vignette = pow(max(vignette, 0.0), 1.5);
 
     color *= vignette;
 
     // Add slight chromatic aberration at edges for unsettling effect
-    float aberrationStrength = vignetteDist * 0.003;
-    vec2 aberrationOffset = normalize(vignetteCoord) * aberrationStrength;
+    // Calculate distance from grid center for aberration
+    vec2 gridCenter = vec2(
+        (u_gridBounds.x + u_gridBounds.z) * 0.5,
+        (u_gridBounds.y + u_gridBounds.w) * 0.5
+    );
+    vec2 offsetFromCenter = v_texCoord - gridCenter;
+    float distFromCenter = length(offsetFromCenter);
+
+    float aberrationStrength = distFromCenter * 0.004;
+    vec2 aberrationOffset = normalize(offsetFromCenter + vec2(0.001)) * aberrationStrength;
 
     float rChannel = texture(u_frame, v_texCoord + aberrationOffset).r;
     float bChannel = texture(u_frame, v_texCoord - aberrationOffset).b;

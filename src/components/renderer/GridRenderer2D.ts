@@ -825,6 +825,88 @@ export class GridRenderer2D {
     }
 
     /**
+     * Gets the grid bounds in UV coordinates (0-1 range).
+     * Returns the min/max UV coordinates of the grid on screen.
+     * UV origin (0,0) is bottom-left, (1,1) is top-right.
+     */
+    getGridBoundsUV(
+        camera: Camera,
+        canvasWidth: number,
+        canvasHeight: number,
+    ): { minU: number; maxU: number; minV: number; maxV: number } | null {
+        if (!this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+            return null;
+        }
+
+        const viewProjMatrix = camera.viewProjMatrix;
+
+        // Grid world bounds
+        const gridMinX = this.settings.worldX;
+        const gridMaxX = this.settings.worldX + this.settings.widthInCells;
+        const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
+        const gridMaxZ = this.settings.worldZ;
+
+        // Project the four corners of the grid to screen space
+        const topLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const topRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMaxZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const bottomLeft = this.projectWorldToScreen(
+            gridMinX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+        const bottomRight = this.projectWorldToScreen(
+            gridMaxX,
+            0,
+            gridMinZ,
+            viewProjMatrix,
+            canvasWidth,
+            canvasHeight,
+        );
+
+        // Check for valid projections
+        if (
+            isNaN(topLeft[0]) ||
+            isNaN(topRight[0]) ||
+            isNaN(bottomLeft[0]) ||
+            isNaN(bottomRight[0])
+        ) {
+            return null;
+        }
+
+        // Get the axis-aligned bounding box in screen pixels
+        const minScreenX = Math.min(topLeft[0], topRight[0], bottomLeft[0], bottomRight[0]);
+        const maxScreenX = Math.max(topLeft[0], topRight[0], bottomLeft[0], bottomRight[0]);
+        const minScreenY = Math.min(topLeft[1], topRight[1], bottomLeft[1], bottomRight[1]);
+        const maxScreenY = Math.max(topLeft[1], topRight[1], bottomLeft[1], bottomRight[1]);
+
+        // Convert to UV coordinates (0-1 range)
+        // Note: Screen Y is flipped (0 at top), but UV V should be 0 at bottom
+        return {
+            minU: minScreenX / canvasWidth,
+            maxU: maxScreenX / canvasWidth,
+            minV: 1.0 - maxScreenY / canvasHeight, // Flip Y
+            maxV: 1.0 - minScreenY / canvasHeight, // Flip Y
+        };
+    }
+
+    /**
      * Snaps the grid to be entirely within the visible camera area.
      * The grid will be centered on the camera position while respecting
      * the minimum and maximum grid size constraints.

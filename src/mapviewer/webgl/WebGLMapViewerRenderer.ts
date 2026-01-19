@@ -32,6 +32,7 @@ import { SdMapLoaderInput } from "./loader/SdMapLoaderInput";
 import {
     FRAME_ELDRITCH_PROGRAM,
     FRAME_FXAA_PROGRAM,
+    FRAME_GRIMDARK_PROGRAM,
     FRAME_PARCHMENT_PROGRAM,
     FRAME_PROGRAM,
     createMainProgram,
@@ -42,6 +43,7 @@ export enum PostProcessingEffect {
     NONE = "none",
     PARCHMENT = "parchment",
     ELDRITCH = "eldritch",
+    GRIMDARK = "grimdark",
 }
 
 const MAX_TEXTURES = 2048;
@@ -106,12 +108,14 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     frameFxaaProgram?: Program;
     frameParchmentProgram?: Program;
     frameEldritchProgram?: Program;
+    frameGrimdarkProgram?: Program;
 
     // Uniforms
     sceneUniformBuffer?: UniformBuffer;
 
     cameraPosUni: vec2 = vec2.fromValues(0, 0);
     resolutionUni: vec2 = vec2.fromValues(0, 0);
+    gridBoundsUni: vec4 = vec4.fromValues(0, 0, 1, 1);
 
     // Framebuffers
     needsFramebufferUpdate: boolean = false;
@@ -142,6 +146,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     frameFxaaDrawCall?: DrawCall;
     frameParchmentDrawCall?: DrawCall;
     frameEldritchDrawCall?: DrawCall;
+    frameGrimdarkDrawCall?: DrawCall;
 
     // Settings
     maxLevel: number = 0;
@@ -264,6 +269,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             FRAME_FXAA_PROGRAM,
             FRAME_PARCHMENT_PROGRAM,
             FRAME_ELDRITCH_PROGRAM,
+            FRAME_GRIMDARK_PROGRAM,
         );
 
         const [
@@ -274,6 +280,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             frameFxaaProgram,
             frameParchmentProgram,
             frameEldritchProgram,
+            frameGrimdarkProgram,
         ] = programs;
         this.mainProgram = mainProgram;
         this.mainAlphaProgram = mainAlphaProgram;
@@ -282,11 +289,13 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.frameFxaaProgram = frameFxaaProgram;
         this.frameParchmentProgram = frameParchmentProgram;
         this.frameEldritchProgram = frameEldritchProgram;
+        this.frameGrimdarkProgram = frameGrimdarkProgram;
 
         this.frameDrawCall = this.app.createDrawCall(frameProgram, this.quadArray);
         this.frameFxaaDrawCall = this.app.createDrawCall(frameFxaaProgram, this.quadArray);
         this.frameParchmentDrawCall = this.app.createDrawCall(frameParchmentProgram, this.quadArray);
         this.frameEldritchDrawCall = this.app.createDrawCall(frameEldritchProgram, this.quadArray);
+        this.frameGrimdarkDrawCall = this.app.createDrawCall(frameGrimdarkProgram, this.quadArray);
 
         return programs;
     }
@@ -909,12 +918,41 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             this.frameEldritchDrawCall &&
             this.activeEffect === PostProcessingEffect.ELDRITCH
         ) {
+            // Get grid bounds for vignette framing
+            const gridBounds = this.gridRenderer.getGridBoundsUV(
+                camera,
+                renderWidth,
+                renderHeight,
+            );
+            if (gridBounds) {
+                this.gridBoundsUni[0] = gridBounds.minU;
+                this.gridBoundsUni[1] = gridBounds.minV;
+                this.gridBoundsUni[2] = gridBounds.maxU;
+                this.gridBoundsUni[3] = gridBounds.maxV;
+            } else {
+                // Fallback to full screen
+                this.gridBoundsUni[0] = 0;
+                this.gridBoundsUni[1] = 0;
+                this.gridBoundsUni[2] = 1;
+                this.gridBoundsUni[3] = 1;
+            }
             this.frameEldritchDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameEldritchDrawCall.uniform("u_gridBounds", this.gridBoundsUni);
             this.frameEldritchDrawCall.texture(
                 "u_frame",
                 this.textureFramebuffer.colorAttachments[0],
             );
             this.frameEldritchDrawCall.draw();
+        } else if (
+            this.frameGrimdarkDrawCall &&
+            this.activeEffect === PostProcessingEffect.GRIMDARK
+        ) {
+            this.frameGrimdarkDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameGrimdarkDrawCall.texture(
+                "u_frame",
+                this.textureFramebuffer.colorAttachments[0],
+            );
+            this.frameGrimdarkDrawCall.draw();
         } else if (this.frameFxaaDrawCall && this.fxaaEnabled) {
             this.frameFxaaDrawCall.uniform("u_resolution", this.resolutionUni);
             this.frameFxaaDrawCall.texture("u_frame", this.textureFramebuffer.colorAttachments[0]);

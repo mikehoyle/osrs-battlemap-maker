@@ -50,6 +50,11 @@ export const EffectsSection = memo(function EffectsSection({
                 checked={activeEffect === PostProcessingEffect.ELDRITCH}
                 onChange={(enabled) => handleEffectChange(PostProcessingEffect.ELDRITCH, enabled)}
             />
+            <SidebarToggle
+                label="Grimdark"
+                checked={activeEffect === PostProcessingEffect.GRIMDARK}
+                onChange={(enabled) => handleEffectChange(PostProcessingEffect.GRIMDARK, enabled)}
+            />
         </SidebarSection>
     );
 });
