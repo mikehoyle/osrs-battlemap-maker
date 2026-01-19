@@ -6,8 +6,13 @@ in vec2 v_texCoord;
 
 uniform highp sampler2D u_frame;
 uniform vec2 u_resolution;
+uniform float u_detailLevel;
+uniform float u_zoomLevel;
 
 out vec4 fragColor;
+
+// Reference zoom level - edges will look the same at any zoom as they do at this level
+const float REFERENCE_ZOOM = 75.0;
 
 // Parchment background color (warm beige/tan)
 const vec3 PARCHMENT_COLOR = vec3(0.89, 0.82, 0.70);
@@ -89,7 +94,10 @@ float fbm(vec2 p) {
 }
 
 void main() {
-    vec2 texelSize = 1.0 / u_resolution;
+    // Scale texel size based on zoom to make edges consistent regardless of zoom level
+    // When zoomed out (lower zoom), use smaller texel steps to keep edges the same thickness
+    float zoomScale = u_zoomLevel / REFERENCE_ZOOM;
+    vec2 texelSize = (1.0 / u_resolution) * zoomScale;
 
     // Sample original color
     vec4 original = texture(u_frame, v_texCoord);
@@ -102,7 +110,10 @@ void main() {
     float edge = max(edge1 * 2.0, edge2 * 3.0);
 
     // Threshold and smooth the edges to create ink strokes
-    edge = smoothstep(0.05, 0.3, edge);
+    // Detail level controls line thickness
+    float thresholdLow = mix(0.20, 0.02, u_detailLevel);
+    float thresholdHigh = mix(0.60, 0.20, u_detailLevel);
+    edge = smoothstep(thresholdLow, thresholdHigh, edge);
 
     // Add slight variation to edge intensity for more natural ink look
     float inkVariation = 0.8 + 0.2 * noise(v_texCoord * u_resolution * 0.1);

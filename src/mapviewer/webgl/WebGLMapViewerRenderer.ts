@@ -164,6 +164,8 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     msaaEnabled: boolean = false;
     fxaaEnabled: boolean = false;
     activeEffect: PostProcessingEffect = PostProcessingEffect.NONE;
+    parchmentDetailLevel: number = 0.5;
+    grimdarkShadowIntensity: number = 0.5;
 
     loadObjs: boolean = true;
     loadNpcs: boolean = false;
@@ -683,6 +685,14 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.activeEffect = effect;
     }
 
+    setParchmentDetailLevel(level: number): void {
+        this.parchmentDetailLevel = level;
+    }
+
+    setGrimdarkShadowIntensity(intensity: number): void {
+        this.grimdarkShadowIntensity = intensity;
+    }
+
     setLoadObjs(enabled: boolean): void {
         const updated = this.loadObjs !== enabled;
         this.loadObjs = enabled;
@@ -909,6 +919,8 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             this.activeEffect === PostProcessingEffect.PARCHMENT
         ) {
             this.frameParchmentDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameParchmentDrawCall.uniform("u_detailLevel", this.parchmentDetailLevel);
+            this.frameParchmentDrawCall.uniform("u_zoomLevel", camera.orthoZoom);
             this.frameParchmentDrawCall.texture(
                 "u_frame",
                 this.textureFramebuffer.colorAttachments[0],
@@ -948,6 +960,10 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             this.activeEffect === PostProcessingEffect.GRIMDARK
         ) {
             this.frameGrimdarkDrawCall.uniform("u_resolution", this.resolutionUni);
+            this.frameGrimdarkDrawCall.uniform(
+                "u_shadowIntensity",
+                this.grimdarkShadowIntensity,
+            );
             this.frameGrimdarkDrawCall.texture(
                 "u_frame",
                 this.textureFramebuffer.colorAttachments[0],

@@ -191,7 +191,7 @@ export class MapViewer {
     }
 
     createCamera(): Camera {
-        const camera = new Camera(3242, -26, 3202, -512, 0);
+        const camera = new Camera(3229, -26, 3219, -512, 0);
         camera.setProjectionType(ProjectionType.ORTHO);
         camera.orthoZoom = DEFAULT_ORTHO_ZOOM;
         return camera;

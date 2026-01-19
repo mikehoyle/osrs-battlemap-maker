@@ -265,9 +265,9 @@ export class InputManager {
         // We need to prevent browser zoom and handle it ourselves
         if (event.ctrlKey) {
             event.preventDefault();
-            // Pinch zoom: deltaY is positive when pinching out (zoom in), negative when pinching in
-            // Use a smaller multiplier for smoother trackpad pinch response
-            this.deltaPinchZoom = event.deltaY * 0.5;
+            // Trackpad pinch: deltaY positive = pinch in (zoom out), deltaY negative = pinch out (zoom in)
+            // Negate to match standard convention: pinch out = zoom in, pinch in = zoom out
+            this.deltaPinchZoom = -event.deltaY * 0.5;
         } else {
             this.deltaMouseScroll = event.deltaY;
         }
@@ -311,9 +311,9 @@ export class InputManager {
             event.preventDefault();
             const currentDistance = getTouchDistance(event.touches[0], event.touches[1]);
             // Calculate delta based on change from last frame, not start
-            // Positive delta = fingers moving apart = zoom in (decrease orthoZoom for larger view)
-            // Negative delta = fingers moving together = zoom out (increase orthoZoom for smaller view)
-            const distanceDelta = this.pinchLastDistance - currentDistance;
+            // Positive delta = fingers moving together = zoom out (increase orthoZoom)
+            // Negative delta = fingers moving apart = zoom in (decrease orthoZoom)
+            const distanceDelta = currentDistance - this.pinchLastDistance;
             // Scale the delta - larger movements = faster zoom
             this.deltaPinchZoom = distanceDelta * 0.5;
             this.pinchLastDistance = currentDistance;

@@ -6,6 +6,7 @@ in vec2 v_texCoord;
 
 uniform highp sampler2D u_frame;
 uniform vec2 u_resolution;
+uniform float u_shadowIntensity;
 
 out vec4 fragColor;
 
@@ -13,24 +14,27 @@ float luminance(vec3 color) {
     return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
-// Deepen shadows with a curve
-vec3 deepenShadows(vec3 color) {
+// Deepen shadows with a curve - intensity controls how deep the shadows are
+vec3 deepenShadows(vec3 color, float intensity) {
     // Apply a toe curve to crush blacks
     float lum = luminance(color);
 
     // S-curve that preserves highlights but deepens shadows
-    float shadowStrength = 0.6;
+    // Scale shadow strength with intensity (0.0 to 0.6)
+    float shadowStrength = 0.6 * intensity;
     vec3 darkened = color * smoothstep(0.0, 0.6, lum);
 
     // Blend based on luminance - darker areas get more crushed
     float blendFactor = 1.0 - smoothstep(0.0, 0.5, lum);
     color = mix(color, darkened, blendFactor * shadowStrength);
 
-    // Stronger shadow crush with gamma
-    color = pow(color, vec3(1.3));
+    // Gamma adjustment scales from 1.0 (no effect) to 1.3 (current max)
+    float gamma = mix(1.0, 1.3, intensity);
+    color = pow(color, vec3(gamma));
 
-    // Push blacks deeper
-    color = max(color - 0.03, 0.0);
+    // Push blacks deeper - scales from 0.0 to 0.03
+    float blackPush = 0.03 * intensity;
+    color = max(color - blackPush, 0.0);
 
     return color;
 }
@@ -45,8 +49,8 @@ void main() {
     vec4 original = texture(u_frame, v_texCoord);
     vec3 color = original.rgb;
 
-    // Deepen shadows first
-    color = deepenShadows(color);
+    // Deepen shadows first - intensity controlled by uniform
+    color = deepenShadows(color, u_shadowIntensity);
 
     // Heavy desaturation (keep ~30% of original saturation)
     color = desaturate(color, 0.7);
