@@ -196,3 +196,40 @@
 .landing-footer-link:hover {
     color: #ff981f;
 }
+
+.landing-card-guides-bg {
+    background: linear-gradient(135deg, #2a2520 0%, #1f1b18 50%, #2a2520 100%);
+}
+
+.landing-card-guides-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 152, 31, 0.03) 20px,
+            rgba(255, 152, 31, 0.03) 21px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 152, 31, 0.03) 20px,
+            rgba(255, 152, 31, 0.03) 21px
+        );
+}
+
+.landing-card-guides-bg::after {
+    content: "?";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 6rem;
+    color: #ff981f;
+    opacity: 0.1;
+}

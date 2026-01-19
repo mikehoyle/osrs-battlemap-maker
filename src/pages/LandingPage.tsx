@@ -79,6 +79,11 @@ export function LandingPage() {
                         <div className="landing-card-overlay" />
                         <span className="landing-card-title">Token Maker</span>
                     </Link>
+                    <Link to="/guides" className="landing-card landing-card-guides">
+                        <div className="landing-card-background landing-card-guides-bg" />
+                        <div className="landing-card-overlay" />
+                        <span className="landing-card-title">Guides</span>
+                    </Link>
                 </div>
             </div>
             <footer className="landing-footer">

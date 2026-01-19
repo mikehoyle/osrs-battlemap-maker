@@ -1,0 +1,151 @@
+.guide-article {
+    max-width: 800px;
+    margin: 0 auto;
+    user-select: text;
+}
+
+.guide-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 2rem;
+    color: #ff981f;
+    margin: 0 0 1rem 0;
+}
+
+.guide-intro {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #ddd;
+    margin-bottom: 2rem;
+}
+
+.guide-section {
+    margin-bottom: 2.5rem;
+}
+
+.guide-section h2 {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.4rem;
+    color: #ff981f;
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #333;
+}
+
+.guide-section h3 {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.1rem;
+    color: #ffb347;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+.guide-section p {
+    line-height: 1.6;
+    margin: 0 0 1rem 0;
+}
+
+.guide-section ul,
+.guide-section ol {
+    margin: 0 0 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.guide-section li {
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.guide-section strong {
+    color: #fff;
+}
+
+.guide-section a {
+    color: #ff981f;
+    text-decoration: none;
+}
+
+.guide-section a:hover {
+    color: #ffb347;
+    text-decoration: underline;
+}
+
+.guide-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.guide-card-link {
+    text-decoration: none;
+}
+
+.guide-card {
+    background-color: #252525;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 1.25rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.guide-card:hover {
+    border-color: #ff981f;
+    background-color: #2a2a2a;
+}
+
+.guide-card h3 {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.1rem;
+    color: #ff981f;
+    margin: 0 0 0.5rem 0;
+}
+
+.guide-card p {
+    color: #aaa;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.guide-note {
+    background-color: #2a2520;
+    border-left: 3px solid #ff981f;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.guide-note p {
+    margin: 0;
+}
+
+.guide-note strong {
+    color: #ff981f;
+}
+
+.guide-steps {
+    counter-reset: step-counter;
+    list-style: none;
+    padding-left: 0;
+}
+
+.guide-steps li {
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.guide-steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2rem;
+    height: 2rem;
+    background-color: #ff981f;
+    color: #1a1a1a;
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

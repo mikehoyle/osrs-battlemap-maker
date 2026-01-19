@@ -1,0 +1,171 @@
+.guides-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #1a1a1a;
+    color: #ccc;
+}
+
+.guides-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #333;
+    background-color: #1a1a1a;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.guides-back-link {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1rem;
+    color: #ff981f;
+    text-decoration: none;
+}
+
+.guides-back-link:hover {
+    color: #ffb347;
+}
+
+.guides-header-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 1.5rem;
+    color: #ff981f;
+    margin: 0;
+    flex: 1;
+}
+
+.guides-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+}
+
+.guides-menu-icon {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background-color: #ff981f;
+    position: relative;
+}
+
+.guides-menu-icon::before,
+.guides-menu-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 24px;
+    height: 2px;
+    background-color: #ff981f;
+}
+
+.guides-menu-icon::before {
+    top: -7px;
+}
+
+.guides-menu-icon::after {
+    top: 7px;
+}
+
+.guides-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.guides-sidebar {
+    width: 250px;
+    min-width: 250px;
+    background-color: #222;
+    border-right: 1px solid #333;
+    overflow-y: auto;
+    padding: 1rem 0;
+}
+
+.guides-nav {
+    display: flex;
+    flex-direction: column;
+}
+
+.guides-nav-link {
+    display: block;
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 0.95rem;
+    color: #aaa;
+    text-decoration: none;
+    padding: 0.75rem 1.25rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.guides-nav-link:hover {
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+.guides-nav-link.active {
+    background-color: #333;
+    color: #ff981f;
+    border-left: 3px solid #ff981f;
+    padding-left: calc(1.25rem - 3px);
+}
+
+.guides-nav-section {
+    margin-top: 1rem;
+}
+
+.guides-nav-section-title {
+    font-family: "OSRS Bold", sans-serif;
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1.25rem;
+    display: block;
+}
+
+.guides-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+.guides-sidebar-backdrop {
+    display: none;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .guides-menu-toggle {
+        display: block;
+    }
+
+    .guides-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+
+    .guides-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .guides-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 150;
+    }
+
+    .guides-content {
+        padding: 1.5rem 1rem;
+    }
+}
