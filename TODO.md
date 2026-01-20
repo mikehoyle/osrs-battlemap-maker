@@ -11,10 +11,10 @@
 # Bigger scope stuff
 
 -   Add items to map (not sure about this one)
--   Enemy token creator (NPC top-down export)
 
 # Done!
 
+-   Enemy token creator (NPC top-down export)
 -   Export Resolution options
 -   Remove controller/joystick controls (fixed mobile touch controls)
 -   Page title
