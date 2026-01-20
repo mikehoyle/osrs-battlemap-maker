@@ -2,6 +2,7 @@
   "name": "osrs-tabletop-tools",
   "compatibility_date": "2026-01-05",
   "assets": {
-    "directory": "./build"
+    "directory": "./build",
+    "not_found_handling": "single-page-application"
   }
 }
