@@ -7,6 +7,7 @@ import { EffectsSection } from "./sections/EffectsSection";
 import { ExportSection } from "./sections/ExportSection";
 import { GridSection } from "./sections/GridSection";
 import { NavigationSection } from "./sections/NavigationSection";
+import { OverlayEffectsSection } from "./sections/OverlayEffectsSection";
 import { ViewSection } from "./sections/ViewSection";
 
 interface SidebarProps {
@@ -54,6 +55,7 @@ export const Sidebar = memo(function Sidebar({
             />
             <ViewSection mapViewer={mapViewer} renderer={renderer} />
             <EffectsSection mapViewer={mapViewer} renderer={renderer} />
+            <OverlayEffectsSection mapViewer={mapViewer} renderer={renderer} />
             <GridSection mapViewer={mapViewer} renderer={renderer} />
             <ExportSection mapViewer={mapViewer} renderer={renderer} />
         </div>

@@ -1,6 +1,8 @@
 import { ProgramSource, prependDefines } from "./ShaderUtil";
 import frameEldritchFragShader from "./frame-eldritch.frag.glsl";
 import frameEldritchVertShader from "./frame-eldritch.vert.glsl";
+import frameFogFragShader from "./frame-fog.frag.glsl";
+import frameFogVertShader from "./frame-fog.vert.glsl";
 import frameFxaaFragShader from "./frame-fxaa.frag.glsl";
 import frameFxaaVertShader from "./frame-fxaa.vert.glsl";
 import frameGrimdarkFragShader from "./frame-grimdark.frag.glsl";
@@ -42,3 +44,4 @@ export const FRAME_FXAA_PROGRAM = [frameFxaaVertShader, frameFxaaFragShader];
 export const FRAME_PARCHMENT_PROGRAM = [frameParchmentVertShader, frameParchmentFragShader];
 export const FRAME_ELDRITCH_PROGRAM = [frameEldritchVertShader, frameEldritchFragShader];
 export const FRAME_GRIMDARK_PROGRAM = [frameGrimdarkVertShader, frameGrimdarkFragShader];
+export const FRAME_FOG_PROGRAM = [frameFogVertShader, frameFogFragShader];

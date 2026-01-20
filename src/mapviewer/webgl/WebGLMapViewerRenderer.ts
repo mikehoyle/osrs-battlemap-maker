@@ -31,6 +31,7 @@ import { SdMapDataLoader } from "./loader/SdMapDataLoader";
 import { SdMapLoaderInput } from "./loader/SdMapLoaderInput";
 import {
     FRAME_ELDRITCH_PROGRAM,
+    FRAME_FOG_PROGRAM,
     FRAME_FXAA_PROGRAM,
     FRAME_GRIMDARK_PROGRAM,
     FRAME_PARCHMENT_PROGRAM,
@@ -109,6 +110,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     frameParchmentProgram?: Program;
     frameEldritchProgram?: Program;
     frameGrimdarkProgram?: Program;
+    frameFogProgram?: Program;
 
     // Uniforms
     sceneUniformBuffer?: UniformBuffer;
@@ -147,6 +149,11 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     frameParchmentDrawCall?: DrawCall;
     frameEldritchDrawCall?: DrawCall;
     frameGrimdarkDrawCall?: DrawCall;
+    frameFogDrawCall?: DrawCall;
+
+    // Secondary framebuffer for composable effects (fog overlay)
+    secondaryColorTarget?: Texture;
+    secondaryFramebuffer?: Framebuffer;
 
     // Settings
     maxLevel: number = 0;
@@ -166,6 +173,12 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
     activeEffect: PostProcessingEffect = PostProcessingEffect.NONE;
     parchmentDetailLevel: number = 0.5;
     grimdarkShadowIntensity: number = 0.5;
+
+    // Fog overlay settings
+    fogEnabled: boolean = false;
+    fogDensity: number = 0.5;
+    fogScale: number = 1.0; // Controls fog patch size (higher = larger patches)
+    fogColor: vec4 = vec4.fromValues(0.85, 0.85, 0.9, 1.0); // Light gray-blue fog
 
     loadObjs: boolean = true;
     loadNpcs: boolean = false;
@@ -272,6 +285,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             FRAME_PARCHMENT_PROGRAM,
             FRAME_ELDRITCH_PROGRAM,
             FRAME_GRIMDARK_PROGRAM,
+            FRAME_FOG_PROGRAM,
         );
 
         const [
@@ -283,6 +297,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
             frameParchmentProgram,
             frameEldritchProgram,
             frameGrimdarkProgram,
+            frameFogProgram,
         ] = programs;
         this.mainProgram = mainProgram;
         this.mainAlphaProgram = mainAlphaProgram;
@@ -292,12 +307,14 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.frameParchmentProgram = frameParchmentProgram;
         this.frameEldritchProgram = frameEldritchProgram;
         this.frameGrimdarkProgram = frameGrimdarkProgram;
+        this.frameFogProgram = frameFogProgram;
 
         this.frameDrawCall = this.app.createDrawCall(frameProgram, this.quadArray);
         this.frameFxaaDrawCall = this.app.createDrawCall(frameFxaaProgram, this.quadArray);
         this.frameParchmentDrawCall = this.app.createDrawCall(frameParchmentProgram, this.quadArray);
         this.frameEldritchDrawCall = this.app.createDrawCall(frameEldritchProgram, this.quadArray);
         this.frameGrimdarkDrawCall = this.app.createDrawCall(frameGrimdarkProgram, this.quadArray);
+        this.frameFogDrawCall = this.app.createDrawCall(frameFogProgram, this.quadArray);
 
         return programs;
     }
@@ -312,6 +329,15 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.textureFramebuffer = this.app
             .createFramebuffer()
             .colorTarget(0, this.textureColorTarget);
+
+        // Secondary framebuffer for composable effects (fog overlay)
+        this.secondaryColorTarget = this.app.createTexture2D(this.app.width, this.app.height, {
+            minFilter: PicoGL.LINEAR,
+            magFilter: PicoGL.LINEAR,
+        });
+        this.secondaryFramebuffer = this.app
+            .createFramebuffer()
+            .colorTarget(0, this.secondaryColorTarget);
 
         // Interact
         this.interactColorTarget = this.app.createTexture2D(this.app.width, this.app.height, {
@@ -693,6 +719,25 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.grimdarkShadowIntensity = intensity;
     }
 
+    // Fog overlay setters
+    setFogEnabled(enabled: boolean): void {
+        this.fogEnabled = enabled;
+    }
+
+    setFogDensity(density: number): void {
+        this.fogDensity = density;
+    }
+
+    setFogScale(scale: number): void {
+        this.fogScale = scale;
+    }
+
+    setFogColor(r: number, g: number, b: number): void {
+        this.fogColor[0] = r / 255;
+        this.fogColor[1] = g / 255;
+        this.fogColor[2] = b / 255;
+    }
+
     setLoadObjs(enabled: boolean): void {
         const updated = this.loadObjs !== enabled;
         this.loadObjs = enabled;
@@ -735,6 +780,8 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         this.depthTarget?.delete();
         this.textureFramebuffer?.delete();
         this.textureColorTarget?.delete();
+        this.secondaryFramebuffer?.delete();
+        this.secondaryColorTarget?.delete();
         this.interactFramebuffer?.delete();
         this.interactColorTarget?.delete();
 
@@ -794,6 +841,7 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         if (resized) {
             this.framebuffer.resize();
             this.textureFramebuffer.resize();
+            this.secondaryFramebuffer?.resize();
             this.interactFramebuffer.resize();
 
             // Use export dimensions if set, otherwise use app dimensions
@@ -912,7 +960,18 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
         this.app.clearMask(PicoGL.COLOR_BUFFER_BIT | PicoGL.DEPTH_BUFFER_BIT);
         this.app.clearColor(0.0, 0.0, 0.0, 1.0);
-        this.app.defaultDrawFramebuffer().clear();
+
+        // Determine if we need to render to secondary framebuffer for fog compositing
+        const applyFog = this.fogEnabled && this.frameFogDrawCall && this.secondaryFramebuffer;
+
+        // First pass: apply filter/fxaa/passthrough
+        // If fog is enabled, render to secondary framebuffer; otherwise render to default
+        if (applyFog) {
+            this.app.drawFramebuffer(this.secondaryFramebuffer!);
+            this.app.clear();
+        } else {
+            this.app.defaultDrawFramebuffer().clear();
+        }
 
         if (
             this.frameParchmentDrawCall &&
@@ -976,6 +1035,26 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
         } else {
             this.frameDrawCall.texture("u_frame", this.textureFramebuffer.colorAttachments[0]);
             this.frameDrawCall.draw();
+        }
+
+        // Second pass: apply fog overlay if enabled
+        if (applyFog) {
+            this.app.defaultDrawFramebuffer().clear();
+            this.frameFogDrawCall!.uniform("u_resolution", this.resolutionUni);
+            this.frameFogDrawCall!.uniform("u_cameraPos", this.cameraPosUni);
+            this.frameFogDrawCall!.uniform("u_zoom", camera.orthoZoom);
+            this.frameFogDrawCall!.uniform("u_fogDensity", this.fogDensity);
+            this.frameFogDrawCall!.uniform("u_fogScale", this.fogScale);
+            this.frameFogDrawCall!.uniform("u_fogColor", [
+                this.fogColor[0],
+                this.fogColor[1],
+                this.fogColor[2],
+            ]);
+            this.frameFogDrawCall!.texture(
+                "u_frame",
+                this.secondaryFramebuffer!.colorAttachments[0],
+            );
+            this.frameFogDrawCall!.draw();
         }
 
         // Load new map squares
@@ -1510,6 +1589,12 @@ export class WebGLMapViewerRenderer extends MapViewerRenderer<WebGLMapSquare> {
 
         this.textureColorTarget?.delete();
         this.textureColorTarget = undefined;
+
+        this.secondaryFramebuffer?.delete();
+        this.secondaryFramebuffer = undefined;
+
+        this.secondaryColorTarget?.delete();
+        this.secondaryColorTarget = undefined;
 
         this.interactFramebuffer?.delete();
         this.interactFramebuffer = undefined;
