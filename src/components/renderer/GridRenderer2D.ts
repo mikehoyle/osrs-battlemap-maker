@@ -219,7 +219,8 @@ export class GridRenderer2D {
         canvasHeight: number,
         threshold: number = 12,
     ): GridEdgeProximity | null {
-        if (!this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
+        // Allow edge detection even when grid lines are disabled (selection always visible)
+        if (camera.projectionType !== ProjectionType.ORTHO) {
             return null;
         }
 
@@ -367,8 +368,8 @@ export class GridRenderer2D {
 
     draw(overlayCanvas: HTMLCanvasElement, camera: Camera): void {
         const ctx = overlayCanvas.getContext("2d");
-        if (!ctx || !this.settings.enabled || camera.projectionType !== ProjectionType.ORTHO) {
-            // Clear if disabled or not in Ortho mode
+        if (!ctx || camera.projectionType !== ProjectionType.ORTHO) {
+            // Clear if not in Ortho mode
             if (ctx) ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             return;
         }
@@ -392,34 +393,64 @@ export class GridRenderer2D {
         const gridMinZ = this.settings.worldZ - this.settings.heightInCells;
         const gridMaxZ = this.settings.worldZ;
 
-        // Draw grid lines
-        ctx.strokeStyle = this.cssColor;
-        ctx.lineWidth = this.settings.widthPx * scaleFactor;
+        // Draw grid lines only if enabled
+        if (this.settings.enabled) {
+            ctx.strokeStyle = this.cssColor;
+            ctx.lineWidth = this.settings.widthPx * scaleFactor;
 
-        // Vertical Lines (X-axis)
-        for (let Xw = gridMinX; Xw <= gridMaxX; Xw++) {
-            const p1 = this.projectWorldToScreen(Xw, 0, gridMaxZ, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(Xw, 0, gridMinZ, viewProjMatrix, width, height);
+            // Vertical Lines (X-axis)
+            for (let Xw = gridMinX; Xw <= gridMaxX; Xw++) {
+                const p1 = this.projectWorldToScreen(
+                    Xw,
+                    0,
+                    gridMaxZ,
+                    viewProjMatrix,
+                    width,
+                    height,
+                );
+                const p2 = this.projectWorldToScreen(
+                    Xw,
+                    0,
+                    gridMinZ,
+                    viewProjMatrix,
+                    width,
+                    height,
+                );
 
-            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLine(ctx, p1, p2, scaleFactor);
+                if (!isNaN(p1[0]) && !isNaN(p2[0])) {
+                    this.drawLine(ctx, p1, p2, scaleFactor);
+                }
+            }
+
+            // Horizontal Lines (Z-axis)
+            for (let Zw = gridMinZ; Zw <= gridMaxZ; Zw++) {
+                const p1 = this.projectWorldToScreen(
+                    gridMinX,
+                    0,
+                    Zw,
+                    viewProjMatrix,
+                    width,
+                    height,
+                );
+                const p2 = this.projectWorldToScreen(
+                    gridMaxX,
+                    0,
+                    Zw,
+                    viewProjMatrix,
+                    width,
+                    height,
+                );
+
+                if (!isNaN(p1[0]) && !isNaN(p2[0])) {
+                    this.drawLine(ctx, p1, p2, scaleFactor);
+                }
             }
         }
 
-        // Horizontal Lines (Z-axis)
-        for (let Zw = gridMinZ; Zw <= gridMaxZ; Zw++) {
-            const p1 = this.projectWorldToScreen(gridMinX, 0, Zw, viewProjMatrix, width, height);
-            const p2 = this.projectWorldToScreen(gridMaxX, 0, Zw, viewProjMatrix, width, height);
-
-            if (!isNaN(p1[0]) && !isNaN(p2[0])) {
-                this.drawLine(ctx, p1, p2, scaleFactor);
-            }
-        }
-
-        // Draw grey overlay for non-grid area
+        // Always draw grey overlay for non-grid area (shows selection bounds)
         this.drawGreyOverlay(ctx, viewProjMatrix, width, height);
 
-        // Draw frame around grid to indicate it's interactable (browser view only)
+        // Always draw frame around grid to indicate it's interactable (browser view only)
         this.drawGridFrame(ctx, viewProjMatrix, width, height, scaleFactor);
     }
 
@@ -733,10 +764,38 @@ export class GridRenderer2D {
 
         // Project the four corners of the grid to screen space
         const corners = [
-            this.projectWorldToScreen(gridMinX, 0, gridMaxZ, viewProjMatrix, canvasWidth, canvasHeight),
-            this.projectWorldToScreen(gridMaxX, 0, gridMaxZ, viewProjMatrix, canvasWidth, canvasHeight),
-            this.projectWorldToScreen(gridMaxX, 0, gridMinZ, viewProjMatrix, canvasWidth, canvasHeight),
-            this.projectWorldToScreen(gridMinX, 0, gridMinZ, viewProjMatrix, canvasWidth, canvasHeight),
+            this.projectWorldToScreen(
+                gridMinX,
+                0,
+                gridMaxZ,
+                viewProjMatrix,
+                canvasWidth,
+                canvasHeight,
+            ),
+            this.projectWorldToScreen(
+                gridMaxX,
+                0,
+                gridMaxZ,
+                viewProjMatrix,
+                canvasWidth,
+                canvasHeight,
+            ),
+            this.projectWorldToScreen(
+                gridMaxX,
+                0,
+                gridMinZ,
+                viewProjMatrix,
+                canvasWidth,
+                canvasHeight,
+            ),
+            this.projectWorldToScreen(
+                gridMinX,
+                0,
+                gridMinZ,
+                viewProjMatrix,
+                canvasWidth,
+                canvasHeight,
+            ),
         ];
 
         // Check if any corner projection is invalid
