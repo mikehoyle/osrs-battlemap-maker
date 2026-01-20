@@ -2,7 +2,6 @@
 
 -   Places of Interest
     - categorization
--   FAQ Page
 -   After-effects like fog or color tweaking
 
 # Possible small additions
