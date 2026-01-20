@@ -233,3 +233,52 @@
     color: #ff981f;
     opacity: 0.1;
 }
+
+.landing-footer-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 1.5rem;
+}
+
+.cookie-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.cookie-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    width: 90%;
+}
+
+.cookie-dialog-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+}
+
+.cookie-dialog-close:hover {
+    color: #000;
+}
+
+.cookie-dialog-content {
+    min-height: 200px;
+}

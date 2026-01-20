@@ -1,14 +1,28 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import "./LandingPage.css";
 
 export function LandingPage() {
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [cookieDialogOpen, setCookieDialogOpen] = useState(false);
+    const cookieDialogRef = useRef<HTMLDivElement>(null);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         setMousePos({ x: e.clientX, y: e.clientY });
     }, []);
+
+    useEffect(() => {
+        if (cookieDialogOpen && cookieDialogRef.current) {
+            const container = cookieDialogRef.current;
+            container.innerHTML = "";
+            const script = document.createElement("script");
+            script.id = "CookieDeclaration";
+            script.src = "https://consent.cookiebot.com/33e19231-3835-4c5a-bf6c-bff1dc19610b/cd.js";
+            script.type = "text/javascript";
+            container.appendChild(script);
+        }
+    }, [cookieDialogOpen]);
 
     return (
         <div className="landing-page" onMouseMove={handleMouseMove}>
@@ -90,7 +104,26 @@ export function LandingPage() {
                 <Link to="/legal" className="landing-footer-link">
                     Legal
                 </Link>
+                <button
+                    className="landing-footer-link landing-footer-button"
+                    onClick={() => setCookieDialogOpen(true)}
+                >
+                    Cookie Consent
+                </button>
             </footer>
+            {cookieDialogOpen && (
+                <div className="cookie-dialog-overlay" onClick={() => setCookieDialogOpen(false)}>
+                    <div className="cookie-dialog" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            className="cookie-dialog-close"
+                            onClick={() => setCookieDialogOpen(false)}
+                        >
+                            ×
+                        </button>
+                        <div ref={cookieDialogRef} className="cookie-dialog-content" />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
