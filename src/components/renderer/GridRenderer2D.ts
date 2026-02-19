@@ -2,6 +2,7 @@ import { mat4, vec2, vec4 } from "gl-matrix";
 
 import { Camera, ProjectionType } from "../../mapviewer/Camera";
 import { RS_TO_RADIANS } from "../../rs/MathConstants";
+import { pixelRatio } from "../../util/DeviceUtil";
 
 export interface GridSettings {
     enabled: boolean;
@@ -355,8 +356,8 @@ export class GridRenderer2D {
         camera: Camera,
     ): { deltaWorldX: number; deltaWorldZ: number } {
         // In ortho mode, the relationship between screen and world is based on zoom
-        // panScale = 4 / camera.orthoZoom (from MapViewerRenderer.handleMouseInput)
-        const panScale = 4 / camera.orthoZoom;
+        // Must match panScale in MapViewerRenderer.handleMouseInput
+        const panScale = (2 * pixelRatio) / camera.orthoZoom;
 
         // Screen X increases right -> World X increases right
         // Screen Y increases down -> World Z decreases (south)

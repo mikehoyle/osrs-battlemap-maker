@@ -8,6 +8,7 @@ import {
 } from "../components/renderer/GridRenderer2D";
 import { Renderer } from "../components/renderer/Renderer";
 import { SceneBuilder } from "../rs/scene/SceneBuilder";
+import { pixelRatio } from "../util/DeviceUtil";
 import { clamp } from "../util/MathUtil";
 import { getAxisDeadzone } from "./InputManager";
 import { MapManager, MapSquare } from "./MapManager";
@@ -185,7 +186,9 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
 
             if (deltaMouseX !== 0 || deltaMouseY !== 0) {
                 // Pan camera - scale inversely with zoom so it feels like dragging the map
-                const panScale = 4 / camera.orthoZoom;
+                // Factor of 2*pixelRatio maps CSS pixel drag to world units 1:1 with the
+                // orthographic projection (which uses canvas physical pixel dimensions)
+                const panScale = (2 * pixelRatio) / camera.orthoZoom;
                 camera.move(-deltaMouseX * panScale, 0, deltaMouseY * panScale);
             }
         }
@@ -193,7 +196,9 @@ export abstract class MapViewerRenderer<T extends MapSquare = MapSquare> extends
         const deltaScroll = inputManager.getDeltaMouseScroll();
 
         if (deltaScroll !== 0) {
-            camera.orthoZoom = clamp(camera.orthoZoom - deltaScroll, 15, 200);
+            // deltaScroll is accumulated and normalized to pixel units
+            // Scale so a typical mouse wheel tick (~100px) produces ~3 zoom units
+            camera.orthoZoom = clamp(camera.orthoZoom - deltaScroll * 0.03, 15, 200);
             camera.updated = true;
         }
 

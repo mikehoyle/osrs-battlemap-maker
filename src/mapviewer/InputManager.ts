@@ -267,9 +267,19 @@ export class InputManager {
             event.preventDefault();
             // Trackpad pinch: deltaY positive = pinch in (zoom out), deltaY negative = pinch out (zoom in)
             // Negate to match standard convention: pinch out = zoom in, pinch in = zoom out
-            this.deltaPinchZoom = -event.deltaY * 0.5;
+            this.deltaPinchZoom += -event.deltaY * 0.5;
         } else {
-            this.deltaMouseScroll = event.deltaY;
+            // Normalize deltaMode: Firefox uses DOM_DELTA_LINE for mouse wheels,
+            // Chrome/Safari use DOM_DELTA_PIXEL. Convert everything to pixel units.
+            let delta = event.deltaY;
+            if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+                delta *= 16;
+            } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+                delta *= 100;
+            }
+            // Accumulate between frames so trackpad (many small events) and
+            // mouse wheel (one large event) are handled consistently
+            this.deltaMouseScroll += delta;
         }
     };
 
