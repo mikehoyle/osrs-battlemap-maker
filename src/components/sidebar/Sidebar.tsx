@@ -17,6 +17,7 @@ interface SidebarProps {
     onBackClick: () => void;
     onWorldMapClick: () => void;
     onPlacesOfInterestClick: () => void;
+    onExportingChange?: (isExporting: boolean) => void;
 }
 
 export const Sidebar = memo(function Sidebar({
@@ -26,6 +27,7 @@ export const Sidebar = memo(function Sidebar({
     onBackClick,
     onWorldMapClick,
     onPlacesOfInterestClick,
+    onExportingChange,
 }: SidebarProps): JSX.Element {
     // Handle F1 key to toggle UI visibility
     useEffect(() => {
@@ -57,7 +59,11 @@ export const Sidebar = memo(function Sidebar({
             <EffectsSection mapViewer={mapViewer} renderer={renderer} />
             <OverlayEffectsSection mapViewer={mapViewer} renderer={renderer} />
             <GridSection mapViewer={mapViewer} renderer={renderer} />
-            <ExportSection mapViewer={mapViewer} renderer={renderer} />
+            <ExportSection
+                mapViewer={mapViewer}
+                renderer={renderer}
+                onExportingChange={onExportingChange}
+            />
         </div>
     );
 });

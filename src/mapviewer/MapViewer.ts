@@ -26,7 +26,8 @@ import { NpcSpawn } from "./data/npc/NpcSpawn";
 import { ObjSpawn } from "./data/obj/ObjSpawn";
 import { RenderDataWorkerPool } from "./worker/RenderDataWorkerPool";
 
-export type ExportResolution = 64 | 128 | 256;
+export type ExportResolution = 64 | 128;
+export type ExportFormat = "png" | "jpeg";
 
 const DEFAULT_RENDER_DISTANCE = isWallpaperEngine ? 512 : 128;
 const DEFAULT_ORTHO_ZOOM = 70;
@@ -357,7 +358,10 @@ export class MapViewer {
         this.loadingMapImageIds.clear();
     }
 
-    async exportBattlemap(resolution: ExportResolution = 128): Promise<Blob | null> {
+    async exportBattlemap(
+        resolution: ExportResolution = 128,
+        format: ExportFormat = "png",
+    ): Promise<Blob | null> {
         const gridRenderer = this.renderer.gridRenderer;
         const settings = gridRenderer.getSettings();
         const gridWidthInCells = settings.widthInCells;
@@ -431,6 +435,8 @@ export class MapViewer {
         // Composite the grid overlay onto the export canvas
         ctx.drawImage(gridCanvas, 0, 0);
 
-        return await new Promise((resolve) => exportCanvas.toBlob(resolve, "image/png"));
+        const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+        const quality = format === "jpeg" ? 0.92 : undefined;
+        return await new Promise((resolve) => exportCanvas.toBlob(resolve, mimeType, quality));
     }
 }

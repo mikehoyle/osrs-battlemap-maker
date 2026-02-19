@@ -30,6 +30,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
     const [isWorldMapOpen, setWorldMapOpen] = useState<boolean>(false);
     const [isPlacesDialogOpen, setPlacesDialogOpen] = useState<boolean>(false);
     const [isGridVisible, setIsGridVisible] = useState<boolean>(true);
+    const [isExporting, setIsExporting] = useState<boolean>(false);
 
     const [menuProps, setMenuProps] = useState<OsrsMenuProps | undefined>(undefined);
 
@@ -188,6 +189,7 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                     onBackClick={goBack}
                     onWorldMapClick={openWorldMap}
                     onPlacesOfInterestClick={openPlacesDialog}
+                    onExportingChange={setIsExporting}
                 />
             )}
 
@@ -224,6 +226,13 @@ export function MapViewerContainer({ mapViewer }: MapViewerContainerProps): JSX.
                 )}
 
                 <RendererCanvas renderer={renderer} />
+
+                {isExporting && (
+                    <div className="export-overlay">
+                        <div className="export-overlay-spinner" />
+                        <span className="export-overlay-text">Exporting...</span>
+                    </div>
+                )}
             </div>
         </div>
     );
