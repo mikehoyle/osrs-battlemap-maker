@@ -74,7 +74,11 @@ type PersistedGridSettings = Pick<
     | "heightInCells"
 >;
 
+export type GridSettingsChangeListener = (settings: GridSettings) => void;
+
 export class GridRenderer2D {
+    private changeListeners: Set<GridSettingsChangeListener> = new Set();
+
     private settings: GridSettings = {
         enabled: true,
         widthPx: 0.5,
@@ -152,6 +156,20 @@ export class GridRenderer2D {
         );
 
         this.saveSettingsToStorage();
+        this.notifyListeners();
+    }
+
+    onSettingsChange(listener: GridSettingsChangeListener): () => void {
+        this.changeListeners.add(listener);
+        return () => {
+            this.changeListeners.delete(listener);
+        };
+    }
+
+    private notifyListeners(): void {
+        for (const listener of this.changeListeners) {
+            listener(this.settings);
+        }
     }
 
     getSettings(): GridSettings {

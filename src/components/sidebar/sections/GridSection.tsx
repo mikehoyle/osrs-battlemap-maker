@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
 import { MapViewer } from "../../../mapviewer/MapViewer";
 import { MapViewerRenderer } from "../../../mapviewer/MapViewerRenderer";
@@ -31,6 +31,14 @@ export const GridSection = memo(function GridSection({
     // Position state
     const [width, setWidth] = useState(settings.widthInCells);
     const [height, setHeight] = useState(settings.heightInCells);
+
+    // Sync local state when grid settings change externally (e.g., drag resize)
+    useEffect(() => {
+        return renderer.gridRenderer.onSettingsChange((newSettings) => {
+            setWidth(newSettings.widthInCells);
+            setHeight(newSettings.heightInCells);
+        });
+    }, [renderer]);
 
     // Appearance handlers
     const handleEnabledChange = useCallback(
