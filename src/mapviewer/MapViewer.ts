@@ -372,8 +372,14 @@ export class MapViewer {
         const targetOrthoZoom = resolution * 2;
 
         // Save current camera state
-        const originalCamPos = vec3.clone(this.camera.pos);
+        const originalCamPos = vec3.clone(this.camera.floatPosition);
         const originalOrthoZoom = this.camera.orthoZoom;
+        const originalSnapToGrid = this.camera.snapToGrid;
+
+        // Disable snap-to-grid during export so fractional center positions are exact.
+        // With odd grid dimensions, the center is at X.5 — snapping would floor it,
+        // shifting the view by half a cell and causing half-squares on the edges.
+        this.camera.snapToGrid = false;
 
         // Move camera to grid center for export
         // worldX/worldZ is top-left corner, grid extends right (+X) and down (-Z)
@@ -388,7 +394,8 @@ export class MapViewer {
             targetOrthoZoom,
         );
 
-        // Restore camera position
+        // Restore camera state
+        this.camera.snapToGrid = originalSnapToGrid;
         this.camera.teleport(originalCamPos[0], originalCamPos[1], originalCamPos[2]);
         this.camera.orthoZoom = originalOrthoZoom;
         this.camera.updated = true;
@@ -413,6 +420,7 @@ export class MapViewer {
 
         // Create a temporary camera state for grid rendering at export position
         const exportCamera = this.createCamera();
+        exportCamera.snapToGrid = false;
         exportCamera.teleport(gridCenterX, undefined, gridCenterZ);
         exportCamera.orthoZoom = targetOrthoZoom;
         exportCamera.update(targetWidth, targetHeight);
