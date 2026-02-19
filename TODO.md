@@ -1,5 +1,7 @@
 # Main stuff
-
+-   BUG: On windows 1444p monitor, mouse dragging is too fast/mismatched
+-   BUG: On windows with g305 mouse, scroll wheel scrolls way too much
+-   BUG: When exporting map of odd width/height, resulting map has half-squares on the edges instead of full squares.
 -   Places of Interest
     - categorization
 -   After-effects like fog or color tweaking
