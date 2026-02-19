@@ -192,7 +192,31 @@ export class MapViewer {
     }
 
     createCamera(): Camera {
-        const camera = new Camera(3229, -26, 3219, -512, 0);
+        // Default grid settings (match GridRenderer2D defaults)
+        let worldX = 3200;
+        let worldZ = 3200;
+        let widthInCells = 30;
+        let heightInCells = 30;
+
+        try {
+            const stored = localStorage.getItem("osrs-battlemap-grid-settings");
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (typeof parsed.worldX === "number") worldX = parsed.worldX;
+                if (typeof parsed.worldZ === "number") worldZ = parsed.worldZ;
+                if (typeof parsed.widthInCells === "number") widthInCells = parsed.widthInCells;
+                if (typeof parsed.heightInCells === "number") heightInCells = parsed.heightInCells;
+            }
+        } catch {
+            // Ignore errors (localStorage unavailable, invalid JSON, etc.)
+        }
+
+        // Center camera on grid center (worldX/worldZ is top-left corner,
+        // grid extends right (+X) and down (-Z))
+        const cameraX = worldX + widthInCells / 2;
+        const cameraZ = worldZ - heightInCells / 2;
+
+        const camera = new Camera(cameraX, -26, cameraZ, -512, 0);
         camera.setProjectionType(ProjectionType.ORTHO);
         camera.orthoZoom = DEFAULT_ORTHO_ZOOM;
         return camera;
