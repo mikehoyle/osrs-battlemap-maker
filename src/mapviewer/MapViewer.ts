@@ -459,6 +459,17 @@ export class MapViewer {
         // Composite the grid overlay onto the export canvas
         ctx.drawImage(gridCanvas, 0, 0);
 
+        // Draw watermark in the bottom-right corner
+        const watermarkText = "Made with osrstabletop.com";
+        const baseFontSize = 24;
+        const fontSize = Math.round(baseFontSize * scaleFactor);
+        const padding = Math.round(12 * scaleFactor);
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.fillText(watermarkText, targetWidth - padding, targetHeight - padding);
+
         const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
         const quality = format === "jpeg" ? 0.92 : undefined;
         return await new Promise((resolve) => exportCanvas.toBlob(resolve, mimeType, quality));
