@@ -223,6 +223,35 @@ export class LocType extends Type {
                     }
                 }
             }
+        } else if (opcode === 6) {
+            const count = buffer.readUnsignedByte();
+            if (count > 0) {
+                if (this.models && !this.lowDetail) {
+                    buffer.offset += count * 5;
+                } else {
+                    this.models = new Array(count);
+                    this.types = new Array(count);
+                    for (let i = 0; i < count; i++) {
+                        this.models[i] = new Array(1);
+                        this.models[i][0] = buffer.readInt();
+                        this.types[i] = buffer.readUnsignedByte();
+                    }
+                }
+            }
+        } else if (opcode === 7) {
+            const count = buffer.readUnsignedByte();
+            if (count > 0) {
+                if (this.models && !this.lowDetail) {
+                    buffer.offset += count * 4;
+                } else {
+                    this.types = undefined;
+                    this.models = new Array(1);
+                    this.models[0] = new Array(count);
+                    for (let i = 0; i < count; i++) {
+                        this.models[0][i] = buffer.readInt();
+                    }
+                }
+            }
         } else if (opcode === 14) {
             this.sizeX = buffer.readUnsignedByte();
         } else if (opcode === 15) {
@@ -380,20 +409,43 @@ export class LocType extends Type {
         } else if (opcode === 90) {
             const bool = true;
         } else if (opcode === 91) {
-            const members = true;
+            if (this.cacheInfo.game === "oldschool") {
+                const bgsounddropoffeasing = buffer.readUnsignedByte();
+            } else {
+                const members = true;
+            }
         } else if (opcode === 93) {
-            this.contourGroundType = 3;
-            this.contourGroundParam = buffer.readShort();
+            if (this.cacheInfo.game === "oldschool") {
+                const easeintype = buffer.readUnsignedByte();
+                const easeinduration = buffer.readUnsignedShort();
+                const easeouttype = buffer.readUnsignedByte();
+                const easeoutduration = buffer.readUnsignedShort();
+            } else {
+                this.contourGroundType = 3;
+                this.contourGroundParam = buffer.readShort();
+            }
         } else if (opcode === 94) {
-            this.contourGroundType = 4;
+            if (this.cacheInfo.game === "oldschool") {
+                // unknown = false
+            } else {
+                this.contourGroundType = 4;
+            }
         } else if (opcode === 95) {
-            this.contourGroundType = 5;
-            // Added somewhere between 582 and 614, not sure
-            if (this.cacheInfo.game === "runescape" && this.cacheInfo.revision >= 614) {
-                this.contourGroundParam = buffer.readUnsignedShort();
+            if (this.cacheInfo.game === "oldschool") {
+                const crossworldsound = buffer.readUnsignedByte();
+            } else {
+                this.contourGroundType = 5;
+                // Added somewhere between 582 and 614, not sure
+                if (this.cacheInfo.game === "runescape" && this.cacheInfo.revision >= 614) {
+                    this.contourGroundParam = buffer.readUnsignedShort();
+                }
             }
         } else if (opcode === 96) {
-            const aBoolean1878 = true;
+            if (this.cacheInfo.game === "oldschool") {
+                const thickness = buffer.readUnsignedByte();
+            } else {
+                const aBoolean1878 = true;
+            }
         } else if (opcode === 97) {
             const adjustMapSceneRotation = true;
         } else if (opcode === 98) {
@@ -402,12 +454,40 @@ export class LocType extends Type {
             const cursor1op = buffer.readUnsignedByte();
             const cursor1 = buffer.readUnsignedShort();
         } else if (opcode === 100) {
-            const cursor2op = buffer.readUnsignedByte();
-            const cursor2 = buffer.readUnsignedShort();
+            if (this.cacheInfo.game === "oldschool") {
+                // subop
+                buffer.readUnsignedByte();
+                buffer.readUnsignedByte();
+                buffer.readString();
+            } else {
+                const cursor2op = buffer.readUnsignedByte();
+                const cursor2 = buffer.readUnsignedShort();
+            }
         } else if (opcode === 101) {
-            const mapSceneRotationOff = buffer.readUnsignedByte();
+            if (this.cacheInfo.game === "oldschool") {
+                // multiop
+                buffer.readUnsignedByte();
+                buffer.readUnsignedShort();
+                buffer.readUnsignedShort();
+                buffer.readInt();
+                buffer.readInt();
+                buffer.readNullString();
+            } else {
+                const mapSceneRotationOff = buffer.readUnsignedByte();
+            }
         } else if (opcode === 102) {
-            this.mapSceneId = buffer.readUnsignedShort();
+            if (this.cacheInfo.game === "oldschool") {
+                // multisubop
+                buffer.readUnsignedByte();
+                buffer.readUnsignedShort();
+                buffer.readUnsignedShort();
+                buffer.readUnsignedShort();
+                buffer.readInt();
+                buffer.readInt();
+                buffer.readNullString();
+            } else {
+                this.mapSceneId = buffer.readUnsignedShort();
+            }
         } else if (opcode === 103) {
             const occludeType = 0;
         } else if (opcode === 104) {

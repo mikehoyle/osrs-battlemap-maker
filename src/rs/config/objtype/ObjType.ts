@@ -73,7 +73,8 @@ export class ObjType extends Type {
 
     team: number;
 
-    isTradable: boolean;
+    tradeable: boolean;
+    stockmarket: boolean;
 
     op75: number;
 
@@ -123,7 +124,8 @@ export class ObjType extends Type {
         this.ambient = 0;
         this.contrast = 0;
         this.team = 0;
-        this.isTradable = false;
+        this.tradeable = true;
+        this.stockmarket = false;
         this.op75 = 0;
         this.unnotedId = -1;
         this.notedId = -1;
@@ -177,6 +179,8 @@ export class ObjType extends Type {
             this.op13 = buffer.readUnsignedByte();
         } else if (opcode === 14) {
             this.op14 = buffer.readUnsignedByte();
+        } else if (opcode === 15) {
+            this.tradeable = false;
         } else if (opcode === 16) {
             this.isMembers = true;
         } else if (opcode === 23) {
@@ -222,10 +226,40 @@ export class ObjType extends Type {
             }
         } else if (opcode === 42) {
             this.shiftClickIndex = buffer.readByte();
-        } else if (opcode === 44 || opcode === 45) {
-            buffer.readUnsignedShort();
+        } else if (opcode === 44) {
+            if (this.cacheInfo.game === "oldschool" && this.cacheInfo.revision >= 237) {
+                this.model = buffer.readInt();
+            } else {
+                buffer.readUnsignedShort();
+            }
+        } else if (opcode === 45) {
+            if (this.cacheInfo.game === "oldschool" && this.cacheInfo.revision >= 237) {
+                this.maleModel = buffer.readInt();
+                this.maleOffset = buffer.readUnsignedByte();
+            } else {
+                buffer.readUnsignedShort();
+            }
+        } else if (opcode === 46) {
+            this.maleModel1 = buffer.readInt();
+        } else if (opcode === 47) {
+            this.maleModel2 = buffer.readInt();
+        } else if (opcode === 48) {
+            this.femaleModel = buffer.readInt();
+            this.femaleOffset = buffer.readUnsignedByte();
+        } else if (opcode === 49) {
+            this.femaleModel1 = buffer.readInt();
+        } else if (opcode === 50) {
+            this.femaleModel2 = buffer.readInt();
+        } else if (opcode === 51) {
+            this.maleHeadModel = buffer.readInt();
+        } else if (opcode === 52) {
+            this.maleHeadModel2 = buffer.readInt();
+        } else if (opcode === 53) {
+            this.femaleHeadModel = buffer.readInt();
+        } else if (opcode === 54) {
+            this.femaleHeadModel2 = buffer.readInt();
         } else if (opcode === 65) {
-            this.isTradable = true;
+            this.stockmarket = true;
         } else if (opcode === 75) {
             this.op75 = buffer.readShort();
         } else if (opcode === 78) {
@@ -311,6 +345,28 @@ export class ObjType extends Type {
             this.placeholderTemplate = buffer.readUnsignedShort();
         } else if (opcode >= 150 && opcode < 155) {
             buffer.readUnsignedShort();
+        } else if (opcode === 200) {
+            // subop
+            buffer.readUnsignedByte();
+            buffer.readUnsignedByte();
+            buffer.readString();
+        } else if (opcode === 201) {
+            // multiop
+            buffer.readUnsignedByte();
+            buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
+            buffer.readInt();
+            buffer.readInt();
+            buffer.readNullString();
+        } else if (opcode === 202) {
+            // multisubop
+            buffer.readUnsignedByte();
+            buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
+            buffer.readUnsignedShort();
+            buffer.readInt();
+            buffer.readInt();
+            buffer.readNullString();
         } else if (opcode === 249) {
             this.params = Type.readParamsMap(buffer, this.params);
         } else {
@@ -332,6 +388,7 @@ export class ObjType extends Type {
         this.retextureTo = template.retextureTo;
         this.name = original.name;
         this.isMembers = original.isMembers;
+        this.tradeable = original.tradeable;
         this.price = original.price;
         this.stackability = ObjStackability.ALWAYS;
     }
@@ -373,6 +430,7 @@ export class ObjType extends Type {
 
         this.inventoryActions[4] = "Discard";
         this.price = 0;
+        this.tradeable = false;
     }
 
     genPlaceholder(template: ObjType, original: ObjType): void {
@@ -391,7 +449,8 @@ export class ObjType extends Type {
         this.name = original.name;
         this.price = 0;
         this.isMembers = false;
-        this.isTradable = false;
+        this.tradeable = false;
+        this.stockmarket = false;
     }
 
     getCountObj(loader: ObjTypeLoader, count: number): ObjType {
